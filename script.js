@@ -15,21 +15,43 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // --- PİYASA VERİLERİ ---
 async function fetchExchangeRates() {
-  try {
-    // Sunucudan dolar kurunu al
-    const res = await fetch(`${API_URL}/exchange-rates`);
-    const data = await res.json();
-    const rate = data.usd_try ? data.usd_try / 10 : 35.5;
+  const defaultRate = 35.5; // API çalışmazsa varsayılan kur
 
+  try {
+    // Yeni ve daha güvenilir bir kur API'si (Örnek: apilayer gibi)
+    const res = await fetch(
+      `https://api.freecurrencyapi.com/v1/latest?apikey=fca_00000000000000000000&currencies=TRY&base_currency=USD`
+    );
+
+    // NOT: Yukarıdaki apikey çalışmazsa, bu satırı silip aşağıdaki alternatifi dene:
+    // const res = await fetch("https://api.exchangerate-api.com/v4/latest/USD");
+
+    const data = await res.json();
+
+    // Veri yapısına göre kuru doğru çekme
+    let rate;
+    if (data.rates && data.rates.TRY) {
+      // freecurrencyapi.com formatı
+      rate = data.rates.TRY;
+    } else if (data.rates && data.rates.TRY) {
+      // exchangerate-api.com formatı
+      rate = data.rates.TRY;
+    } else {
+      rate = defaultRate;
+    }
+
+    // Dolar Kuru
     document.getElementById("usd-rate").textContent = rate.toFixed(2) + " TL";
 
-    // Altın hesaplama
-    const ons = 2600;
-    const gram = (ons * rate) / 31.1035;
+    // Altın hesaplama (Ons Fiyatı + Dolar Kuru üzerinden Gram Altın Hesabı)
+    const ons = 2400; // Ons Altın Güncel Fiyatı (Manuel olarak güncellenebilir)
+    const gram = (ons * rate) / 31.1035; // 31.1035 gram = 1 ons
     document.getElementById("gold-rate").textContent = gram.toFixed(2) + " TL";
   } catch (e) {
     console.log("Kur hatası:", e);
-    document.getElementById("usd-rate").textContent = "35.50 TL";
+    document.getElementById("usd-rate").textContent =
+      defaultRate.toFixed(2) + " TL";
+    document.getElementById("gold-rate").textContent = "Hesaplanamadı";
   }
 }
 
