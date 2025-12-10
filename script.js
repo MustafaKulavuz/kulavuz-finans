@@ -3,7 +3,7 @@
 // ===============================================================
 
 // Backend adresimiz (Sunucunun çalıştığı adres)
-const API_URL = "http://localhost:5000/api";
+const API_URL = "https://kulavuz-finans.onrender.com/api";
 
 let chartInstance = null;
 
