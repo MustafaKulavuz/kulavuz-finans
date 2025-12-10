@@ -1,241 +1,156 @@
-// ===============================================================
-//  KULAVUZ FİNANS – FULL STACK (MONGODB) SÜRÜMÜ
-// ===============================================================
-
-// Backend adresimiz (Sunucunun çalıştığı adres)
+// Sunucu adresi (Render.com'daki Backend adresin)
+// DİKKAT: Bu linkin sonunda /api OLMALI!
 const API_URL = "https://kulavuz-finans.onrender.com/api";
 
-let chartInstance = null;
-
-// Sayfa Yüklendiğinde
-document.addEventListener("DOMContentLoaded", () => {
-  checkLoginStatus();
-  fetchExchangeRates();
-});
-
-// --- PİYASA VERİLERİ ---
+// --- PİYASA VERİLERİ (GÜNCEL API) ---
+// API Key istemeyen, güncel döviz kurlarını çeken fonksiyon
 async function fetchExchangeRates() {
-  const defaultRate = 35.5; // API çalışmazsa varsayılan kur
+  const defaultRate = 35.5; // API çalışmazsa kullanılacak varsayılan kur
 
   try {
-    // Yeni ve daha güvenilir bir kur API'si (Örnek: apilayer gibi)
-    const res = await fetch(
-      `https://api.freecurrencyapi.com/v1/latest?apikey=fca_00000000000000000000&currencies=TRY&base_currency=USD`
-    );
+    // open.er-api.com adresi, API Key istemez ve stabil çalışır
+    const res = await fetch("https://open.er-api.com/v6/latest/USD");
 
-    // NOT: Yukarıdaki apikey çalışmazsa, bu satırı silip aşağıdaki alternatifi dene:
-    // const res = await fetch("https://api.exchangerate-api.com/v4/latest/USD");
+    // Eğer yanıt başarısızsa hata fırlat (Örn: 404, 500)
+    if (!res.ok) {
+      throw new Error(`API isteği başarısız: ${res.status}`);
+    }
 
     const data = await res.json();
 
-    // Veri yapısına göre kuru doğru çekme
-    let rate;
-    if (data.rates && data.rates.TRY) {
-      // freecurrencyapi.com formatı
-      rate = data.rates.TRY;
-    } else if (data.rates && data.rates.TRY) {
-      // exchangerate-api.com formatı
-      rate = data.rates.TRY;
-    } else {
-      rate = defaultRate;
-    }
+    // TRY kurunu çek
+    let rate = data.rates.TRY;
 
-    // Dolar Kuru
+    // 1. Dolar Kurunu Güncelle
     document.getElementById("usd-rate").textContent = rate.toFixed(2) + " TL";
 
-    // Altın hesaplama (Ons Fiyatı + Dolar Kuru üzerinden Gram Altın Hesabı)
-    const ons = 2400; // Ons Altın Güncel Fiyatı (Manuel olarak güncellenebilir)
-    const gram = (ons * rate) / 31.1035; // 31.1035 gram = 1 ons
+    // 2. Altın hesaplama (Gram Altın = Ons * Dolar Kuru / 31.1035)
+    const ons = 2400; // Ons Altın Güncel Fiyatı (Bu değeri manuel güncelleyebilirsin)
+    const gram = (ons * rate) / 31.1035;
     document.getElementById("gold-rate").textContent = gram.toFixed(2) + " TL";
   } catch (e) {
-    console.log("Kur hatası:", e);
+    console.error("Kur çekme hatası:", e);
     document.getElementById("usd-rate").textContent =
-      defaultRate.toFixed(2) + " TL";
+      defaultRate.toFixed(2) + " TL (Hata)";
     document.getElementById("gold-rate").textContent = "Hesaplanamadı";
   }
 }
 
-// --- GİRİŞ / KAYIT ---
-function checkLoginStatus() {
-  const user = localStorage.getItem("currentUsername");
-  const auth = document.getElementById("auth-container");
-  const app = document.getElementById("app-container");
-
-  if (user) {
-    auth.style.display = "none";
-    app.style.display = "block";
-    loadData(); // Veritabanından verileri çek!
-  } else {
-    auth.style.display = "block";
-    app.style.display = "none";
+// --- VERİTABANI İŞLEMLERİ ---
+async function fetchBudget() {
+  try {
+    const res = await fetch(`${API_URL}/budget`);
+    if (res.ok) {
+      const data = await res.json();
+      displayBudget(data);
+    }
+  } catch (e) {
+    console.error("Bütçe çekme hatası:", e);
   }
 }
 
-function showRegister() {
-  document.getElementById("login-form").style.display = "none";
-  document.getElementById("register-form").style.display = "block";
-}
+async function saveBudget() {
+  // 1. Kullanıcıdan Verileri Topla
+  const username = "c"; // Kullanıcı adı sabit kalsın
+  const income = parseFloat(document.getElementById("income").value) || 0;
+  const rent = parseFloat(document.getElementById("rent").value) || 0;
+  const food = parseFloat(document.getElementById("food").value) || 0;
+  const transport = parseFloat(document.getElementById("transport").value) || 0;
+  const entertainment =
+    parseFloat(document.getElementById("entertainment").value) || 0;
+  const other = parseFloat(document.getElementById("other").value) || 0;
+  const rentDay = parseFloat(document.getElementById("rentDay").value) || 0;
+  const usdBirikim =
+    parseFloat(document.getElementById("usdBirikim").value) || 0;
 
-function showLogin() {
-  document.getElementById("login-form").style.display = "block";
-  document.getElementById("register-form").style.display = "none";
-}
-
-// Kayıt ve Giriş (Basitleştirilmiş)
-function registerUser() {
-  const username = document
-    .getElementById("register-username")
-    .value.toLowerCase();
-  if (!username) return alert("Kullanıcı adı giriniz");
-
-  localStorage.setItem("currentUsername", username);
-  customAlert("Başarılı", "Giriş yapılıyor...");
-  checkLoginStatus();
-}
-
-function loginUser() {
-  const username = document
-    .getElementById("login-username")
-    .value.toLowerCase();
-  if (!username) return alert("Kullanıcı adı giriniz");
-
-  localStorage.setItem("currentUsername", username);
-  checkLoginStatus();
-}
-
-function logoutUser() {
-  localStorage.removeItem("currentUsername");
-  checkLoginStatus();
-}
-
-// --- VERİ KAYDETME (DATABASE'E YOLLAR) ---
-async function saveData() {
-  const username = localStorage.getItem("currentUsername");
-  if (!username) return;
-
-  const data = {
-    username: username,
-    income: parseFloat(document.getElementById("monthly-income").value) || 0,
-    rent: parseFloat(document.getElementById("rent-expense").value) || 0,
-    rentDay: parseInt(document.getElementById("rent-day").value) || 1,
-    mutfak: parseFloat(document.getElementById("mutfak-expense").value) || 0,
-    ulasim: parseFloat(document.getElementById("ulasim-expense").value) || 0,
-    eglence: parseFloat(document.getElementById("eglence-expense").value) || 0,
-    diger: parseFloat(document.getElementById("diger-expense").value) || 0,
-    usdBirikim: parseFloat(document.getElementById("usd-birikim").value) || 0,
+  const budgetData = {
+    username,
+    income,
+    rent,
+    food,
+    transport,
+    entertainment,
+    other,
+    rentDay,
+    usdBirikim,
   };
 
   try {
-    // Fetch ile Backend'e POST isteği atıyoruz
-    const response = await fetch(`${API_URL}/budget`, {
+    // 2. Sunucuya POST isteği gönder
+    const res = await fetch(`${API_URL}/budget`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(budgetData),
     });
 
-    if (response.ok) {
-      customAlert("Başarılı", "Veriler Buluta Kaydedildi! ☁️");
-      calculateBudget(data);
+    // 3. Yanıtı Kontrol Et
+    if (res.ok) {
+      const data = await res.json();
+      displayBudget(data);
+      alert("Veriler Başarıyla Kaydedildi! 💾");
     } else {
-      customAlert("Hata", "Kaydedilemedi.");
+      const errorData = await res.json();
+      throw new Error(
+        errorData.message || "Kaydetme sırasında bir sunucu hatası oluştu."
+      );
     }
-  } catch (error) {
-    console.error(error);
-    customAlert("Sunucu Hatası", "Backend açık mı?");
+  } catch (e) {
+    console.error("Kaydetme hatası:", e);
+    alert(`Hata: Kaydedilemedi. Lütfen Console'u kontrol edin.`);
   }
 }
 
-// --- VERİ YÜKLEME (DATABASE'DEN ÇEKER) ---
-async function loadData() {
-  const username = localStorage.getItem("currentUsername");
-  if (!username) return;
+// --- HESAPLAMA VE GÖSTERİM ---
+function displayBudget(budget) {
+  // 1. Giderleri Hesapla
+  const totalExpenses =
+    budget.rent +
+    budget.food +
+    budget.transport +
+    budget.entertainment +
+    budget.other;
+  const netBudget = budget.income - totalExpenses; // Gelir - Gider
 
-  try {
-    // Backend'den verileri iste
-    const response = await fetch(`${API_URL}/budget/${username}`);
+  // 2. Günlük Bütçe Hesaplama
+  const today = new Date();
+  const currentMonth = today.getMonth();
+  const currentYear = today.getFullYear();
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate(); // Ayın toplam gün sayısı
 
-    if (response.ok) {
-      const data = await response.json();
+  const remainingDays = daysInMonth - today.getDate() + 1; // Kalan gün sayısı
 
-      // Gelen verileri kutulara doldur
-      document.getElementById("monthly-income").value = data.income;
-      document.getElementById("rent-expense").value = data.rent;
-      document.getElementById("rent-day").value = data.rentDay;
-      document.getElementById("mutfak-expense").value = data.mutfak;
-      document.getElementById("ulasim-expense").value = data.ulasim;
-      document.getElementById("eglence-expense").value = data.eglence;
-      document.getElementById("diger-expense").value = data.diger;
-      document.getElementById("usd-birikim").value = data.usdBirikim;
-
-      calculateBudget(data);
-    }
-  } catch (error) {
-    console.log("Veri çekilemedi (Yeni kullanıcı olabilir).");
+  // Kirayı ödenecek tarihe göre hesapla
+  let rentDue = new Date(currentYear, currentMonth, budget.rentDay);
+  if (rentDue < today) {
+    // Kira günü geçtiyse, sonraki aya ait kirayı düşün
+    rentDue = new Date(currentYear, currentMonth + 1, budget.rentDay);
   }
-}
 
-// --- HESAPLAMALAR ---
-function calculateBudget(data) {
-  if (!data) return;
+  // Basitlik için net bütçe / kalan gün formülü
+  const dailyLimit = netBudget / remainingDays;
 
-  const totalFixedExpenses =
-    data.rent + data.mutfak + data.ulasim + data.eglence + data.diger;
-  const availableBudget = data.income - totalFixedExpenses;
+  // 3. Sonuçları Ekranda Göster
+  document.getElementById("total-income").textContent =
+    budget.income.toLocaleString() + " TL";
+  document.getElementById("total-expense").textContent =
+    totalExpenses.toLocaleString() + " TL";
+  document.getElementById("net-budget").textContent =
+    netBudget.toLocaleString() + " TL";
 
-  // Günlük Limit Hesabı
-  const today = new Date().getDate();
-  const remainingDays = 30 - today + 1;
-  const dailyLimit = availableBudget > 0 ? availableBudget / remainingDays : 0;
-
-  document.getElementById("available-budget").textContent =
-    availableBudget.toFixed(2) + " TL";
+  document.getElementById("net-budget-display").textContent =
+    netBudget.toLocaleString() + " TL";
   document.getElementById("daily-limit").textContent =
-    dailyLimit.toFixed(2) + " TL";
-
-  renderBudgetChart(data, totalFixedExpenses);
+    dailyLimit.toFixed(2).toLocaleString() + " TL";
 }
 
-// --- GRAFİK ---
-function renderBudgetChart(data, fixedExpenses) {
-  if (chartInstance) chartInstance.destroy();
-  const ctx = document.getElementById("budgetChart").getContext("2d");
+// --- BAŞLANGIÇ ---
+// Sayfa yüklendiğinde çalışacak ana fonksiyon
+document.addEventListener("DOMContentLoaded", () => {
+  fetchExchangeRates(); // Kur bilgilerini çek
+  fetchBudget(); // Kayıtlı bütçe verilerini çek
 
-  const kalan = data.income - fixedExpenses;
-
-  chartInstance = new Chart(ctx, {
-    type: "pie",
-    data: {
-      labels: ["Kira", "Mutfak", "Ulaşım", "Eğlence", "Diğer", "Kalan"],
-      datasets: [
-        {
-          data: [
-            data.rent,
-            data.mutfak,
-            data.ulasim,
-            data.eglence,
-            data.diger,
-            kalan > 0 ? kalan : 0,
-          ],
-          backgroundColor: [
-            "#FF6384",
-            "#FF9F40",
-            "#FFCD56",
-            "#4BC0C0",
-            "#9966FF",
-            "#4CAF50",
-          ],
-        },
-      ],
-    },
-  });
-}
-
-// --- MODAL ---
-function customAlert(title, message) {
-  document.getElementById("modalTitle").textContent = title;
-  document.getElementById("modalMessage").textContent = message;
-  document.getElementById("customAlertModal").style.display = "block";
-}
-function closeModal() {
-  document.getElementById("customAlertModal").style.display = "none";
-}
+  // Butonlara event listener ekle
+  document.getElementById("saveButton").addEventListener("click", saveBudget);
+});
