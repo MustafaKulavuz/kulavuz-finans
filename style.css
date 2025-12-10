@@ -1,0 +1,201 @@
+/* Genel Stil Sıfırlamaları */
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f4f7f6;
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+/* --- GİRİŞ/KAYIT STİLLERİ --- */
+.auth-container {
+  width: 100%;
+  max-width: 400px;
+  background-color: #ffffff;
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.15);
+  border-radius: 15px;
+  padding: 30px;
+  text-align: center;
+}
+
+.auth-form input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  box-sizing: border-box;
+}
+
+.auth-form button {
+  width: 100%;
+  margin-top: 5px;
+}
+
+.auth-container a {
+  color: #4caf50; /* Ana tema rengi */
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.auth-container p {
+  margin-top: 20px;
+}
+
+.logout-button {
+  width: auto !important;
+  padding: 5px 10px !important;
+  margin-top: 0 !important;
+  float: right;
+  font-size: 0.8em !important;
+  background-color: #f44336 !important;
+}
+
+.logout-button:hover {
+  background-color: #d32f2f !important;
+}
+
+/* --- UYGULAMA STİLLERİ --- */
+
+.app-container {
+  width: 100%;
+  max-width: 400px;
+  background-color: #ffffff;
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.15);
+  border-radius: 15px;
+  overflow: hidden;
+}
+
+/* Başlık Alanı */
+.header {
+  background-color: #4caf50;
+  color: white;
+  padding: 20px;
+  text-align: center;
+}
+
+.header h1 {
+  margin: 0 0 5px 0;
+}
+
+.content {
+  padding: 20px;
+}
+
+/* Kart Stilleri */
+.balance-card,
+.analysis-card,
+.reminder-card {
+  background-color: #e8f5e9;
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 20px;
+  border-left: 6px solid #4caf50;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.budget-setup-card input[type="number"],
+.budget-setup-card input[type="text"] {
+  width: calc(100% - 10px);
+  padding: 10px;
+  margin-top: 5px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-sizing: border-box;
+  font-size: 1em;
+}
+
+#available-budget,
+#daily-limit {
+  font-size: 1.6em;
+  font-weight: bold;
+  color: #388e3c;
+  margin: 10px 0;
+  display: block;
+}
+
+button {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1em;
+  font-weight: bold;
+  transition: background-color 0.3s, transform 0.1s;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 10px;
+}
+
+button:hover {
+  background-color: #388e3c;
+}
+
+#suggestions-list {
+  list-style: none;
+  padding-left: 0;
+  margin-top: 15px;
+}
+
+#suggestions-list li {
+  background-color: #c8e6c9;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 8px;
+  font-size: 0.95em;
+  border-left: 4px solid #388e3c;
+}
+
+.reminder-item {
+  background-color: #bbdefb;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 8px;
+  font-size: 0.95em;
+  color: #1565c0;
+}
+
+/* --- MODAL STİLLERİ --- */
+
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 100;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.5);
+  padding-top: 60px;
+}
+
+.modal-content {
+  background-color: #ffffff;
+  margin: 10% auto;
+  padding: 25px;
+  border: none;
+  width: 90%;
+  max-width: 350px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
+  animation-name: animatetop;
+  animation-duration: 0.4s;
+}
+
+@keyframes animatetop {
+  from {
+    top: -300px;
+    opacity: 0;
+  }
+  to {
+    top: 10%;
+    opacity: 1;
+  }
+}

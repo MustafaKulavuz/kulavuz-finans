@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kulavuz Finans - Yapay Zekâ Destekli Bütçeleme</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <div id="auth-container" class="auth-container">
+      <h1>Kulavuz Finans'a Hoş Geldiniz</h1>
+
+      <div id="login-form" class="auth-form">
+        <h3>Giriş Yap</h3>
+        <input
+          type="text"
+          id="login-username"
+          placeholder="Kullanıcı Adı"
+          required
+        />
+        <input
+          type="password"
+          id="login-password"
+          placeholder="Parola"
+          required
+        />
+        <button onclick="loginUser()">Giriş Yap</button>
+        <p>
+          Hesabınız yok mu? <a href="#" onclick="showRegister()">Kayıt Olun</a>
+        </p>
+      </div>
+
+      <div id="register-form" class="auth-form" style="display: none">
+        <h3>Kayıt Ol</h3>
+        <input
+          type="text"
+          id="register-username"
+          placeholder="Kullanıcı Adı"
+          required
+        />
+        <input
+          type="password"
+          id="register-password"
+          placeholder="Parola (En az 6 karakter)"
+          required
+        />
+        <button onclick="registerUser()">Kayıt Ol</button>
+        <p>
+          Zaten hesabınız var mı?
+          <a href="#" onclick="showLogin()">Giriş Yapın</a>
+        </p>
+      </div>
+    </div>
+    <div id="app-container" class="app-container" style="display: none">
+      <header class="header">
+        <h1>Kulavuz Finans</h1>
+        <p>
+          Yapay Zekâ Destekli Kişisel Asistanınız
+          <button class="logout-button" onclick="logoutUser()">
+            Çıkış Yap
+          </button>
+        </p>
+      </header>
+
+      <main class="content">
+        <section class="reminder-card currency-card">
+          <h2>📈 Piyasa Durumu</h2>
+          <p>USD/TL: <span id="usd-rate">Yükleniyor...</span></p>
+          <p>Gram Altın: <span id="gold-rate">Yükleniyor...</span></p>
+        </section>
+
+        <section class="analysis-card chart-card">
+          <h2>📊 Bütçe Dağılımı (Gelir vs Gider)</h2>
+          <canvas id="budgetChart"></canvas>
+        </section>
+
+        <section class="analysis-card budget-setup-card">
+          <h2>✍️ Aylık Veri Girişi & Kategoriler</h2>
+          <label for="monthly-income">Aylık Gelir (TL):</label>
+          <input
+            type="number"
+            id="monthly-income"
+            placeholder="Örn: 25000"
+            required
+          /><br />
+
+          <label for="rent-expense">Kira Gideri (TL):</label>
+          <input
+            type="number"
+            id="rent-expense"
+            placeholder="Örn: 10000"
+          /><br />
+
+          <label for="rent-day">Kira Ödeme Günü (Ayın Kaçı):</label>
+          <input
+            type="number"
+            id="rent-day"
+            min="1"
+            max="31"
+            placeholder="Örn: 25"
+          /><br />
+
+          <label for="mutfak-expense">Mutfak/Gıda Gideri (TL):</label>
+          <input
+            type="number"
+            id="mutfak-expense"
+            placeholder="Örn: 3000"
+          /><br />
+
+          <label for="ulasim-expense">Ulaşım Gideri (TL):</label>
+          <input
+            type="number"
+            id="ulasim-expense"
+            placeholder="Örn: 500"
+          /><br />
+
+          <label for="eglence-expense">Eğlence/Sosyal Gider (TL):</label>
+          <input
+            type="number"
+            id="eglence-expense"
+            placeholder="Örn: 1500"
+          /><br />
+
+          <label for="usd-birikim">Hedef USD Birikimi (TL karşılığı):</label>
+          <input
+            type="number"
+            id="usd-birikim"
+            placeholder="Örn: 100 USD karşılığı TL"
+          /><br />
+
+          <label for="diger-expense">Diğer Sabit Giderler (TL):</label>
+          <input
+            type="number"
+            id="diger-expense"
+            placeholder="Faturalar, Abonelikler vb."
+          /><br />
+
+          <button onclick="saveData()">
+            Verileri Kaydet & Bütçeyi Hesapla
+          </button>
+        </section>
+
+        <hr />
+
+        <section class="balance-card">
+          <h2>📊 Genel Durum</h2>
+          <p>
+            Hedef Birikim Öncesi Bütçe:
+            <span id="available-budget" style="font-weight: bold"
+              >Hesaplanıyor...</span
+            >
+          </p>
+          <p>
+            Kalan Günlük Harcama Limiti:
+            <span id="daily-limit" style="font-weight: bold"
+              >Hesaplanıyor...</span
+            >
+          </p>
+          <button onclick="checkBalance()">Bakiyem Ne Durumda?</button>
+        </section>
+
+        <section class="analysis-card">
+          <h2>🧠 Kişiselleştirilmiş Analiz ve Yatırım Tavsiyeleri</h2>
+          <p class="analysis-text" id="analysis-summary">
+            Analiz bekleniyor...
+          </p>
+          <ul id="suggestions-list">
+            <li>Kişiselleştirilmiş öneriler burada yer alacak.</li>
+          </ul>
+        </section>
+
+        <section class="reminder-card">
+          <h2>⏰ Hatırlatıcılar</h2>
+          <div id="reminders-list">
+            <p class="reminder-item">Gider verilerinizi girin.</p>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <p>&copy; 2025 Kulavuz Finans. Tüm Hakları Saklıdır.</p>
+      </footer>
+    </div>
+
+    <div id="customAlertModal" class="modal">
+      <div class="modal-content">
+        <span class="close-button" onclick="closeModal()">&times;</span>
+        <h3 id="modalTitle">Bildirim</h3>
+        <p id="modalMessage">Bu bir test mesajıdır.</p>
+        <button class="modal-ok-button" onclick="closeModal()">Tamam</button>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
