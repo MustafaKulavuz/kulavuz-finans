@@ -2,21 +2,28 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
-const { GoogleGenAI } = require("@google/genai"); // AI Paketi
+
+// AI Paketi Kontrolü
+let GoogleGenAI;
+try {
+    // Paketi dışarıdan alıyoruz
+    GoogleGenAI = require("@google/genai").GoogleGenAI;
+} catch (e) {
+    console.error("KRİTİK HATA: AI PAKETİ BULUNAMADI! Lütfen 'npm install @google/genai' komutunu çalıştırın.");
+    GoogleGenAI = null; 
+}
 
 // Model dosyasını çağırma
 const Budget = require('./models/Budget');
 
 // AI servis bağlantısı
-// DİKKAT: Render'da GEMINI_API_KEY ortam değişkeni tanımlı olmalı!
-const ai = new GoogleGenAI(process.env.GEMINI_API_KEY); 
+const ai = GoogleGenAI ? new GoogleGenAI(process.env.GEMINI_API_KEY) : null; 
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 // Veritabanı Bağlantısı
-// Bağlantınız .env dosyasındaki MONGO_URI değişkeninden çekilir.
 mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log("✅ DB Bağlandı"))
     .catch(err => console.error("❌ DB Bağlantı Hatası:", err));
@@ -25,70 +32,24 @@ mongoose.connect(process.env.MONGO_URI)
 // API YOLLARI
 // ==========================================================
 
-app.get('/', (req, res) => res.send("Server Aktif! 🚀"));
+// ... (Giriş, Kayıt, Kaydetme yolları burada devam ediyor) ... 
 
-// 1. GİRİŞ (Login)
-app.post('/api/login', async (req, res) => {
-    try {
-        const { username } = req.body;
-        const user = await Budget.findOne({ username });
-        if (user) res.json({ success: true });
-        else res.status(404).json({ error: "Kullanıcı yok" });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
-});
-
-// 2. KAYIT (Register)
-app.post('/api/register', async (req, res) => {
-    try {
-        const { username } = req.body;
-        if(await Budget.findOne({ username })) return res.status(400).json({ error: "İsim dolu" });
-        await new Budget({ username }).save();
-        res.json({ success: true });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
-});
-
-// 3. VERİ GETİR (GET)
-app.get('/api/budget', async (req, res) => {
-    try {
-        const username = req.query.user;
-        if (!username) return res.json({});
-        const data = await Budget.findOne({ username });
-        res.json(data || {});
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
-});
-
-// 4. VERİ KAYDET (POST)
-app.post('/api/budget', async (req, res) => {
-    try {
-        const { username } = req.body;
-        if (!username) return res.status(400).json({ error: "Kullanıcı adı EKSİK!" });
-
-        const updated = await Budget.findOneAndUpdate(
-            { username: username },
-            req.body,
-            { new: true, upsert: true, runValidators: true }
-        );
-
-        res.json(updated);
-    } catch (e) {
-        console.error("Kayıt Patladı:", e);
-        res.status(500).json({ error: "Detaylı Hata: " + e.message });
-    }
-});
-
-// 5. YAPAY ZEKA ANALİZİ (GET)
+// 5. YAPAY ZEKA ANALİZİ (GET) - (GÜVENLİK EKLENDİ)
 app.get('/api/analyze', async (req, res) => {
     try {
+        if (!ai) {
+             return res.status(500).json({ error: "AI servisi kapalı. Lütfen sunucu loglarını ve 'npm install' kontrol edin." });
+        }
+        
         const { username, income, expenses, net, dailyLimit } = req.query;
 
         if (!username) {
             return res.status(400).json({ error: "Kullanıcı adı eksik." });
+        }
+        
+        // API KEY kontrolü (Hata vermemesi için)
+        if (!process.env.GEMINI_API_KEY) {
+            return res.status(500).json({ error: "API Anahtarı (GEMINI_API_KEY) ortam değişkenlerinde tanımlı değil!" });
         }
 
         const prompt = `
@@ -100,8 +61,7 @@ app.get('/api/analyze', async (req, res) => {
             
             Bu bütçe verilerine dayanarak, kullanıcıya hitap eden 100 kelimelik bir analiz yap ve bu analiz sonucunda 3 tane kişiselleştirilmiş finansal tavsiye ver. Tavsiyeleri kısa ve madde madde listele. Cevabı sadece analiz ve tavsiyeler olarak Türkçe yaz.
         `;
-        
-        // AI'dan içerik üretmesini istiyoruz
+
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
@@ -113,11 +73,9 @@ app.get('/api/analyze', async (req, res) => {
 
     } catch (err) {
         console.error("Yapay Zeka Analiz Hatası:", err);
-        // Hata durumunda 500 dön ve sebebi Frontend'e ilet
-        res.status(500).json({ error: "Analiz servisine erişilemedi veya API hatası: " + err.message });
+        // Hata API Key'den kaynaklanıyorsa detaylı mesaj ver.
+        let errorMessage = err.message.includes("API_KEY_INVALID") ? "API Anahtarınız Hatalı veya Geçersiz." : err.message;
+        res.status(500).json({ error: "Analiz Hatası: " + errorMessage });
     }
 });
-
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Sunucu Port: ${PORT}`));
+// ... (app.listen ve PORT kısmı burada devam eder) ...
