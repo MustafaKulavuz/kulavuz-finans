@@ -38,11 +38,15 @@ async function fetchExchangeRates() {
 
 // --- VERİTABANI İŞLEMLERİ ---
 async function fetchBudget() {
+  if (!currentUser) return; // Kullanıcı yoksa çekme
+
   try {
-    const res = await fetch(`${API_URL}/budget`);
+    // Backend'e "Bana şu kullanıcının verisini ver" diyoruz
+    const res = await fetch(`${API_URL}/budget?user=${currentUser}`);
+    
     if (res.ok) {
       const data = await res.json();
-      displayBudget(data);
+      if(data) displayBudget(data); // Veri varsa göster
     }
   } catch (e) {
     console.error("Bütçe çekme hatası:", e);
