@@ -79,3 +79,13 @@ app.get('/api/analyze', async (req, res) => {
     }
 });
 // ... (app.listen ve PORT kısmı burada devam eder) ...
+// ==========================================================
+// PORT DİNLEME (Bu kod server.js'nin en sonunda olmalıdır)
+// ==========================================================
+
+const PORT = process.env.PORT || 5000;
+
+// app.listen komutu sunucuyu başlatır
+app.listen(PORT, () => {
+    console.log(`🚀 Sunucu Port: ${PORT} üzerinde çalışıyor.`);
+});
