@@ -98,9 +98,8 @@ async function saveBudget() {
       alert("Veriler Başarıyla Kaydedildi! 💾");
     } else {
       const errorData = await res.json();
-      throw new Error(
-        errorData.message || "Kaydetme sırasında bir sunucu hatası oluştu."
-      );
+    // DÜZELTME: Hem 'error' hem 'message' kontrolü ekledik.
+    throw new Error(errorData.error || errorData.message || "Bilinmeyen sunucu hatası");
     }
   } catch (e) {
     console.error("Kaydetme hatası:", e);
