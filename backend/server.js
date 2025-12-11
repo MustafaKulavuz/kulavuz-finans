@@ -3,78 +3,68 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
+// Model dosyasını çağırma (Eğer dosya yoksa hata verir)
 const Budget = require('./models/Budget');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// MongoDB Bağlantısı
+// Veritabanı Bağlantısı
 mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log("✅ Kulavuz Finans Veritabanı Hazır!"))
-    .catch(err => console.error("❌ Veritabanı Hatası:", err));
+    .then(() => console.log("✅ DB Bağlandı"))
+    .catch(err => console.error("❌ DB Bağlantı Hatası:", err));
 
 // --- API YOLLARI ---
 
-// 1. GİRİŞ YAP
+app.get('/', (req, res) => res.send("Server Aktif!"));
+
+// GİRİŞ
 app.post('/api/login', async (req, res) => {
-    try {
-        const { username } = req.body;
-        const user = await Budget.findOne({ username: username });
-        if (user) {
-            res.json({ success: true, message: "Giriş Başarılı" });
-        } else {
-            res.status(404).json({ error: "Kullanıcı bulunamadı!" });
-        }
-    } catch (err) {
-        res.status(500).json({ error: "Sunucu hatası" });
-    }
+    const { username } = req.body;
+    const user = await Budget.findOne({ username });
+    if (user) res.json({ success: true });
+    else res.status(404).json({ error: "Kullanıcı yok" });
 });
 
-// 2. KAYIT OL
+// KAYIT
 app.post('/api/register', async (req, res) => {
-    try {
-        const { username } = req.body;
-        const existingUser = await Budget.findOne({ username: username });
-        if (existingUser) return res.status(400).json({ error: "Bu isim alınmış." });
-
-        const newBudget = new Budget({ username: username });
-        await newBudget.save();
-        res.json({ success: true, message: "Kayıt Başarılı" });
-    } catch (err) {
-        res.status(500).json({ error: "Kayıt hatası" });
-    }
+    const { username } = req.body;
+    if(await Budget.findOne({ username })) return res.status(400).json({ error: "İsim dolu" });
+    await new Budget({ username }).save();
+    res.json({ success: true });
 });
 
-// 3. BÜTÇE GETİR (GET)
+// VERİ GETİR
 app.get('/api/budget', async (req, res) => {
-    try {
-        const username = req.query.user;
-        if (!username) return res.json({}); 
-        const budget = await Budget.findOne({ username: username });
-        res.json(budget || {});
-    } catch (err) {
-        res.status(500).json({ error: "Veri çekilemedi" });
-    }
+    const username = req.query.user;
+    if (!username) return res.json({});
+    const data = await Budget.findOne({ username });
+    res.json(data || {});
 });
 
-// 4. BÜTÇE KAYDET (POST) - İŞTE BU EKSİK OLABİLİR!
+// VERİ KAYDET (İşte burayı konuşturacağız)
 app.post('/api/budget', async (req, res) => {
     try {
-        const { username } = req.body;
-        if (!username) return res.status(400).json({ error: "Kullanıcı adı yok!" });
+        console.log("Gelen Veri:", req.body); // Loglara yaz
 
-        const updatedBudget = await Budget.findOneAndUpdate(
-            { username: username }, 
+        const { username } = req.body;
+        if (!username) return res.status(400).json({ error: "Kullanıcı adı EKSİK!" });
+
+        // upsert: true -> Yoksa oluştur, varsa güncelle
+        const updated = await Budget.findOneAndUpdate(
+            { username: username },
             req.body,
-            { new: true, upsert: true } 
+            { new: true, upsert: true, runValidators: true } // runValidators: Hatalı veri varsa engelle
         );
-        res.json(updatedBudget);
-    } catch (err) {
-        console.error("Kayıt Hatası:", err); // Loglara hatayı yazdır
-        res.status(500).json({ error: "Kaydedilemedi" });
+
+        res.json(updated);
+    } catch (e) {
+        console.error("Kayıt Patladı:", e);
+        // HATAYI GİZLEME, DİREKT GÖNDER!
+        res.status(500).json({ error: "Detaylı Hata: " + e.message });
     }
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Sunucu: http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Port: ${PORT}`));
