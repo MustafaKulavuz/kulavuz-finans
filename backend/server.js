@@ -34,6 +34,65 @@ mongoose.connect(process.env.MONGO_URI)
 
 // ... (Giriş, Kayıt, Kaydetme yolları burada devam ediyor) ... 
 
+app.post('/api/login',async (req, res)=>{
+    try {
+       const { username } = req.body; 
+       //kullanıcıyı budget modelini arıyoruz
+       const user = await Budget.findOne({username});
+       if(user) res.json({success:true});
+       else res.status(404).json({error:"Kullanıcı bulunamadı lütfen kayıt olun."});
+       
+    } catch (e) {
+        res.status(500).json({error:e.message});
+    }
+});
+
+//2.kayıt
+app.post('/api/register',async (req, res)=>{
+    try {
+        const { username } = req.body; 
+        if(await Budget.findOne({username})) return res.status(400).json({error:"Kullanıcı zaten mevcut lütfen giriş yapın."});
+        await new Budget({username}).save();
+        res.json({success:true});
+        
+    } catch (e) {
+        res.status(500).json({error:e.message});
+    }
+});
+
+//3 veri egtir get
+app.get('/api/budget', async (req, res) => {
+    try {
+        const username = req.query.user;
+        if (!username) return res.json({});
+        
+        // Kullanıcının bütçe verilerini çek
+        const data = await Budget.findOne({ username });
+        res.json(data || {});
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// 4. VERİ KAYDET (POST /api/budget)
+app.post('/api/budget', async (req, res) => {
+    try {
+        const { username } = req.body;
+        if (!username) return res.status(400).json({ error: "Kullanıcı adı EKSİK!" });
+
+        // Veriyi bul ve güncelle, yoksa yeni oluştur
+        const updated = await Budget.findOneAndUpdate(
+            { username: username },
+            req.body,
+            { new: true, upsert: true, runValidators: true }
+        );
+
+        res.json(updated);
+    } catch (e) {
+        console.error("Kaydetme Hatası:", e);
+        res.status(500).json({ error: "Kaydetme başarısız: " + e.message });
+    }
+});
 // 5. YAPAY ZEKA ANALİZİ (GET) - (GÜVENLİK EKLENDİ)
 app.get('/api/analyze', async (req, res) => {
     try {
