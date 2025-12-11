@@ -38,15 +38,16 @@ async function fetchExchangeRates() {
 
 // --- VERİTABANI İŞLEMLERİ ---
 async function fetchBudget() {
-  if (!currentUser) return; // Kullanıcı yoksa çekme
+  // Eğer kullanıcı giriş yapmadıysa veri çekmeye çalışma
+  if (!currentUser || currentUser === "misafir") return; 
 
   try {
-    // Backend'e "Bana şu kullanıcının verisini ver" diyoruz
     const res = await fetch(`${API_URL}/budget?user=${currentUser}`);
     
     if (res.ok) {
       const data = await res.json();
-      if(data) displayBudget(data); // Veri varsa göster
+      // Gelen veri null olsa bile displayBudget fonksiyonunu boş obje ile koru
+      displayBudget(data || {}); 
     }
   } catch (e) {
     console.error("Bütçe çekme hatası:", e);
@@ -109,45 +110,43 @@ async function saveBudget() {
 
 // --- HESAPLAMA VE GÖSTERİM ---
 function displayBudget(budget) {
+  // Eğer budget null gelirse boş bir obje ata ki çökmesin
+  if (!budget) budget = {};
+
+  // Değerleri alırken "|| 0" kullanarak, veri yoksa 0 saymasını sağla
+  const income = budget.income || 0;
+  const rent = budget.rent || 0;
+  const food = budget.food || 0;
+  const transport = budget.transport || 0;
+  const entertainment = budget.entertainment || 0;
+  const other = budget.other || 0;
+  const rentDay = budget.rentDay || 1;
+
   // 1. Giderleri Hesapla
-  const totalExpenses =
-    budget.rent +
-    budget.food +
-    budget.transport +
-    budget.entertainment +
-    budget.other;
-  const netBudget = budget.income - totalExpenses; // Gelir - Gider
+  const totalExpenses = rent + food + transport + entertainment + other;
+  const netBudget = income - totalExpenses; 
 
   // 2. Günlük Bütçe Hesaplama
   const today = new Date();
   const currentMonth = today.getMonth();
   const currentYear = today.getFullYear();
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate(); // Ayın toplam gün sayısı
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const remainingDays = daysInMonth - today.getDate() + 1;
 
-  const remainingDays = daysInMonth - today.getDate() + 1; // Kalan gün sayısı
+  // 3. Sonuçları Ekranda Göster (Güvenli bir şekilde)
+  // document.getElementById elementlerinin varlığını kontrol etmeye gerek yok, HTML'i düzelttik
+  document.getElementById("total-income").textContent = income.toLocaleString() + " TL";
+  document.getElementById("total-expense").textContent = totalExpenses.toLocaleString() + " TL";
+  document.getElementById("net-budget").textContent = netBudget.toLocaleString() + " TL";
 
-  // Kirayı ödenecek tarihe göre hesapla
-  let rentDue = new Date(currentYear, currentMonth, budget.rentDay);
-  if (rentDue < today) {
-    // Kira günü geçtiyse, sonraki aya ait kirayı düşün
-    rentDue = new Date(currentYear, currentMonth + 1, budget.rentDay);
-  }
+  // Renklendirme
+  const netElement = document.getElementById("net-budget");
+  if(netBudget < 0) netElement.style.color = "red";
+  else netElement.style.color = "green";
 
-  // Basitlik için net bütçe / kalan gün formülü
-  const dailyLimit = netBudget / remainingDays;
-
-  // 3. Sonuçları Ekranda Göster
-  document.getElementById("total-income").textContent =
-    budget.income.toLocaleString() + " TL";
-  document.getElementById("total-expense").textContent =
-    totalExpenses.toLocaleString() + " TL";
-  document.getElementById("net-budget").textContent =
-    netBudget.toLocaleString() + " TL";
-
-  document.getElementById("net-budget-display").textContent =
-    netBudget.toLocaleString() + " TL";
-  document.getElementById("daily-limit").textContent =
-    dailyLimit.toFixed(2).toLocaleString() + " TL";
+  // Günlük limit
+  const dailyLimit = remainingDays > 0 ? (netBudget / remainingDays) : 0;
+  document.getElementById("daily-limit").textContent = dailyLimit.toFixed(2).toLocaleString() + " TL";
 }
 
 // --- BAŞLANGIÇ ---

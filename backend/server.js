@@ -16,53 +16,59 @@ mongoose.connect(process.env.MONGO_URI)
 
 // --- API YOLLARI ---
 
-// 1. Bütçeyi Getir (Kullanıcı Adına Göre)
-// Örnek kullanım: /api/budget?user=Mustafa
+// 1. Bütçeyi Getir (Hata Korumalı)
 app.get('/api/budget', async (req, res) => {
     try {
-        const username = req.query.user; // Linkten isyi al
-        if (!username) return res.json(null); // İsim yoksa boş dön
+        const username = req.query.user;
+        
+        // Eğer kullanıcı adı gelmediyse hata döndürme, boş veri dön
+        if (!username || username === "undefined") {
+            return res.json({ 
+                username: "misafir", income: 0, rent: 0, food: 0, 
+                transport: 0, entertainment: 0, other: 0, rentDay: 1, usdBirikim: 0 
+            });
+        }
 
         let budget = await Budget.findOne({ username: username });
         
-        // Eğer bu isimde kayıt yoksa boş bir şablon döndür (hata vermesin)
+        // Eğer veritabanında kayıt yoksa, varsayılan sıfırları döndür (NULL DÖNDÜRME)
         if (!budget) {
-            return res.json({ username: username, income: 0, expenses: 0 });
+            return res.json({ 
+                username: username, income: 0, rent: 0, food: 0, 
+                transport: 0, entertainment: 0, other: 0, rentDay: 1, usdBirikim: 0 
+            });
         }
         
         res.json(budget);
     } catch (err) {
         console.error("Getirme Hatası:", err);
-        res.status(500).json({ error: "Veri çekilemedi: " + err.message });
+        res.status(500).json({ error: "Sunucu hatası" });
     }
 });
 
-// 2. Bütçeyi Kaydet/Güncelle (DİNAMİK)
+// 2. Bütçeyi Kaydet (Hata Korumalı)
 app.post('/api/budget', async (req, res) => {
     try {
-        // Frontend'den gelen kullanıcı adını al
-        const { username } = req.body; 
+        const { username } = req.body;
 
         if (!username) {
-            return res.status(400).json({ error: "Kullanıcı adı eksik!" });
+            return res.status(400).json({ error: "Kullanıcı adı eksik! Lütfen giriş yapın." });
         }
 
-        // O kullanıcı adını bul ve güncelle (Yoksa yeni oluştur)
+        // upsert: true -> Varsa güncelle, yoksa yeni oluştur
         const updatedBudget = await Budget.findOneAndUpdate(
-            { username: username }, // ARTIK SABİT "c" DEĞİL!
+            { username: username }, 
             req.body,
-            { new: true, upsert: true } // upsert: true (yoksa yarat demektir)
+            { new: true, upsert: true } 
         );
         
-        console.log(`✅ ${username} için veri kaydedildi.`);
         res.json(updatedBudget);
 
     } catch (err) {
         console.error("KAYIT HATASI:", err);
-        // Hatayı frontend'e gönder ki görebilelim
         res.status(500).json({ error: err.message });
     }
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Finans Sunucusu: http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Sunucu Çalışıyor: http://localhost:${PORT}`));
