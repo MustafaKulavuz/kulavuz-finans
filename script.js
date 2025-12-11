@@ -200,6 +200,14 @@ async function fetchAnalysis(budget) {
   // Günlük limit
   const dailyLimit = remainingDays > 0 ? (netBudget / remainingDays) : 0;
   document.getElementById("daily-limit").textContent = dailyLimit.toFixed(2).toLocaleString() + " TL";
+  // ... displayBudget fonksiyonunun sonu ...
+
+  // 3. Sonuçları Ekranda Göster
+  // ... diğer kodlar ...
+  
+  // Burada analizi başlatıyoruz:
+  fetchAnalysis(budget); // <-- BU SATIRI EKLE
+
 }
 
 // --- BAŞLANGIÇ ---
