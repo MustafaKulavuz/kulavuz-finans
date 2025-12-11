@@ -16,75 +16,65 @@ mongoose.connect(process.env.MONGO_URI)
 
 // --- API YOLLARI ---
 
-// 1. Bütçeyi Getir (Hata Korumalı)
-app.get('/api/budget', async (req, res) => {
-    try {
-        const username = req.query.user;
-        
-        // Eğer kullanıcı adı gelmediyse hata döndürme, boş veri dön
-        if (!username || username === "undefined") {
-            return res.json({ 
-                username: "misafir", income: 0, rent: 0, food: 0, 
-                transport: 0, entertainment: 0, other: 0, rentDay: 1, usdBirikim: 0 
-            });
-        }
-
-        let budget = await Budget.findOne({ username: username });
-        
-        // Eğer veritabanında kayıt yoksa, varsayılan sıfırları döndür (NULL DÖNDÜRME)
-        if (!budget) {
-            return res.json({ 
-                username: username, income: 0, rent: 0, food: 0, 
-                transport: 0, entertainment: 0, other: 0, rentDay: 1, usdBirikim: 0 
-            });
-        }
-        
-        res.json(budget);
-    } catch (err) {
-        console.error("Getirme Hatası:", err);
-        res.status(500).json({ error: "Sunucu hatası" });
-    }
-});
-
-// 2. Bütçeyi Kaydet (Hata Korumalı)
-// --- YENİ EKLENEN GÜVENLİK YOLLARI ---
-
-// 3. GİRİŞ YAP (Kontrol Et)
+// 1. GİRİŞ YAP
 app.post('/api/login', async (req, res) => {
     try {
         const { username } = req.body;
-        // Bu isimde bir bütçe/kullanıcı kaydı var mı?
         const user = await Budget.findOne({ username: username });
-
         if (user) {
             res.json({ success: true, message: "Giriş Başarılı" });
         } else {
-            res.status(404).json({ error: "Kullanıcı bulunamadı! Lütfen önce kayıt olun." });
+            res.status(404).json({ error: "Kullanıcı bulunamadı!" });
         }
     } catch (err) {
         res.status(500).json({ error: "Sunucu hatası" });
     }
 });
 
-// 4. KAYIT OL (Yeni Kullanıcı Oluştur)
+// 2. KAYIT OL
 app.post('/api/register', async (req, res) => {
     try {
         const { username } = req.body;
-        
-        // Önce var mı diye bak, varsa hata ver (Aynı isimden 2 tane olmasın)
         const existingUser = await Budget.findOne({ username: username });
-        if (existingUser) {
-            return res.status(400).json({ error: "Bu kullanıcı adı zaten alınmış." });
-        }
+        if (existingUser) return res.status(400).json({ error: "Bu isim alınmış." });
 
-        // Yoksa yeni oluştur
         const newBudget = new Budget({ username: username });
         await newBudget.save();
-
         res.json({ success: true, message: "Kayıt Başarılı" });
     } catch (err) {
         res.status(500).json({ error: "Kayıt hatası" });
     }
 });
+
+// 3. BÜTÇE GETİR (GET)
+app.get('/api/budget', async (req, res) => {
+    try {
+        const username = req.query.user;
+        if (!username) return res.json({}); 
+        const budget = await Budget.findOne({ username: username });
+        res.json(budget || {});
+    } catch (err) {
+        res.status(500).json({ error: "Veri çekilemedi" });
+    }
+});
+
+// 4. BÜTÇE KAYDET (POST) - İŞTE BU EKSİK OLABİLİR!
+app.post('/api/budget', async (req, res) => {
+    try {
+        const { username } = req.body;
+        if (!username) return res.status(400).json({ error: "Kullanıcı adı yok!" });
+
+        const updatedBudget = await Budget.findOneAndUpdate(
+            { username: username }, 
+            req.body,
+            { new: true, upsert: true } 
+        );
+        res.json(updatedBudget);
+    } catch (err) {
+        console.error("Kayıt Hatası:", err); // Loglara hatayı yazdır
+        res.status(500).json({ error: "Kaydedilemedi" });
+    }
+});
+
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Sunucu Çalışıyor: http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Sunucu: http://localhost:${PORT}`));
