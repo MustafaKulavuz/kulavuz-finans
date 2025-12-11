@@ -111,6 +111,58 @@ async function saveBudget() {
 
 // --- HESAPLAMA VE GÖSTERİM ---
 function displayBudget(budget) {
+  // --- YAPAY ZEKA ANALİZ FONKSİYONU ---
+async function fetchAnalysis(budget) {
+    if (!currentUser || !budget.income) return; // Veri yoksa analiz etme
+
+    // Giderleri hesapla (Bu kod displayBudget'ta da var, burada tekrarlıyoruz)
+    const totalExpenses = (budget.rent || 0) + (budget.food || 0) + (budget.transport || 0) + (budget.entertainment || 0) + (budget.other || 0);
+    const netBudget = budget.income - totalExpenses; 
+    
+    // Günlük limiti hesapla
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const remainingDays = daysInMonth - today.getDate() + 1;
+    const dailyLimit = remainingDays > 0 ? (netBudget / remainingDays) : 0;
+
+    // Loading mesajını göster
+    document.getElementById("analysis-summary").textContent = "Yapay zeka analiz ediliyor, lütfen bekleyin...";
+    document.getElementById("suggestions-list").innerHTML = "<li>Analiz yükleniyor...</li>";
+
+    try {
+        // Backend'deki analiz yolunu çağır
+        const res = await fetch(`${API_URL}/analyze?username=${currentUser}&income=${budget.income}&expenses=${totalExpenses}&net=${netBudget}&dailyLimit=${dailyLimit.toFixed(2)}`);
+        
+        if (res.ok) {
+            const data = await res.json();
+            const fullText = data.analysis;
+
+            // Analiz ve tavsiyeleri ayır
+            const [analysisPart, suggestionsPart] = fullText.split("Tavsiyeler:");
+
+            // 1. Analizi Yazdır
+            document.getElementById("analysis-summary").textContent = analysisPart.trim();
+            
+            // 2. Tavsiyeleri Maddeleştir (Eğer varsa)
+            if (suggestionsPart) {
+                 const suggestionsList = suggestionsPart.split(/\d+\.\s*/).filter(item => item.trim() !== '');
+                 document.getElementById("suggestions-list").innerHTML = suggestionsList.map(item => `<li>${item.trim()}</li>`).join('');
+            } else {
+                 document.getElementById("suggestions-list").innerHTML = "<li>Tavsiyeler metinden ayrılamadı.</li>";
+            }
+            
+        } else {
+            const errorData = await res.json();
+             document.getElementById("analysis-summary").textContent = "Hata: Analiz edilemedi. API anahtarınızı kontrol edin.";
+             document.getElementById("suggestions-list").innerHTML = `<li>Hata: ${errorData.error}</li>`;
+        }
+    } catch (e) {
+        console.error("Analiz çağrısı hatası:", e);
+        document.getElementById("analysis-summary").textContent = "Bağlantı Hatası: Sunucuya ulaşılamıyor.";
+    }
+}
   // Eğer budget null gelirse boş bir obje ata ki çökmesin
   if (!budget) budget = {};
 

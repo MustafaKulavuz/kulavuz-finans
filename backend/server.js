@@ -68,3 +68,44 @@ app.post('/api/budget', async (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Port: ${PORT}`));
+
+// server.js içine en üste, diğer 'require' satırlarının yanına ekle:
+const { GoogleGenAI } = require("@google/genai"); 
+const ai = new GoogleGenAI(process.env.GEMINI_API_KEY); 
+
+// --- YENİ ANALİZ YOLU ---
+
+// 5. Yapay Zeka Analizi (GET)
+app.get('/api/analyze', async (req, res) => {
+    try {
+        const { username, income, expenses, net, dailyLimit } = req.query;
+
+        if (!username) {
+            return res.status(400).json({ error: "Kullanıcı adı eksik." });
+        }
+
+        const prompt = `
+            Kullanıcı: ${username}.
+            Aylık Gelir: ${income} TL
+            Aylık Gider (Toplam): ${expenses} TL
+            Net Aylık Bütçe: ${net} TL
+            Kalan Günlük Harcama Limiti: ${dailyLimit} TL
+            
+            Bu bütçe verilerine dayanarak, kullanıcıya hitap eden 100 kelimelik bir analiz yap ve bu analiz sonucunda 3 tane kişiselleştirilmiş finansal tavsiye ver. Tavsiyeleri kısa ve madde madde listele. Cevabı sadece analiz ve tavsiyeler olarak Türkçe yaz.
+        `;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+        });
+
+        const analysisText = response.text; 
+
+        // Cevabı JSON olarak Frontend'e gönder
+        res.json({ analysis: analysisText });
+
+    } catch (err) {
+        console.error("Yapay Zeka Analiz Hatası:", err);
+        res.status(500).json({ error: "Analiz servisine erişilemedi veya API hatası." });
+    }
+});
