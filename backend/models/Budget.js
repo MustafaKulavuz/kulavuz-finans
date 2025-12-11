@@ -13,4 +13,5 @@ const BudgetSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now },
 });
 
-module.exports = mongoose.model("Budget", BudgetSchema);
+// DÜZELTME: Model zaten varsa onu kullan, yoksa yenisini oluştur.
+module.exports = mongoose.models.Budget || mongoose.model("Budget", BudgetSchema);
