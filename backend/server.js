@@ -47,28 +47,44 @@ app.get('/api/budget', async (req, res) => {
 });
 
 // 2. Bütçeyi Kaydet (Hata Korumalı)
-app.post('/api/budget', async (req, res) => {
+// --- YENİ EKLENEN GÜVENLİK YOLLARI ---
+
+// 3. GİRİŞ YAP (Kontrol Et)
+app.post('/api/login', async (req, res) => {
     try {
         const { username } = req.body;
+        // Bu isimde bir bütçe/kullanıcı kaydı var mı?
+        const user = await Budget.findOne({ username: username });
 
-        if (!username) {
-            return res.status(400).json({ error: "Kullanıcı adı eksik! Lütfen giriş yapın." });
+        if (user) {
+            res.json({ success: true, message: "Giriş Başarılı" });
+        } else {
+            res.status(404).json({ error: "Kullanıcı bulunamadı! Lütfen önce kayıt olun." });
         }
-
-        // upsert: true -> Varsa güncelle, yoksa yeni oluştur
-        const updatedBudget = await Budget.findOneAndUpdate(
-            { username: username }, 
-            req.body,
-            { new: true, upsert: true } 
-        );
-        
-        res.json(updatedBudget);
-
     } catch (err) {
-        console.error("KAYIT HATASI:", err);
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: "Sunucu hatası" });
     }
 });
 
+// 4. KAYIT OL (Yeni Kullanıcı Oluştur)
+app.post('/api/register', async (req, res) => {
+    try {
+        const { username } = req.body;
+        
+        // Önce var mı diye bak, varsa hata ver (Aynı isimden 2 tane olmasın)
+        const existingUser = await Budget.findOne({ username: username });
+        if (existingUser) {
+            return res.status(400).json({ error: "Bu kullanıcı adı zaten alınmış." });
+        }
+
+        // Yoksa yeni oluştur
+        const newBudget = new Budget({ username: username });
+        await newBudget.save();
+
+        res.json({ success: true, message: "Kayıt Başarılı" });
+    } catch (err) {
+        res.status(500).json({ error: "Kayıt hatası" });
+    }
+});
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Sunucu Çalışıyor: http://localhost:${PORT}`));

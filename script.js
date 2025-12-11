@@ -175,30 +175,67 @@ function showLogin() {
 
 // Giriş Yap (Basit Simülasyon)
 // Giriş Yap
-function loginUser() {
-  const usernameInput = document.getElementById("login-username").value;
-  
-  if (!usernameInput) return alert("Lütfen kullanıcı adı girin!");
+// --- GİRİŞ VE KAYIT İŞLEMLERİ (GERÇEK) ---
 
-  currentUser = usernameInput; // <-- İSMİ HAFIZAYA ALIYORUZ
+// Giriş Yap
+async function loginUser() {
+    const usernameInput = document.getElementById("login-username").value.trim(); // Boşlukları temizle
+    
+    if (!usernameInput) return alert("Lütfen kullanıcı adı girin!");
 
-  // Giriş ekranını gizle, ana uygulamayı aç
-  document.getElementById("auth-container").style.display = "none";
-  document.getElementById("app-container").style.display = "block";
-  
-  // O kişiye ait eski verileri hemen ekrana getir
-  fetchBudget(); 
-  
-  alert("Hoş geldiniz, " + currentUser + "! 👋");
+    try {
+        // Backend'e sor: Böyle biri var mı?
+        const res = await fetch(`${API_URL}/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: usernameInput })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            // BAŞARILI: İçeri al
+            currentUser = usernameInput;
+            document.getElementById("auth-container").style.display = "none";
+            document.getElementById("app-container").style.display = "block";
+            fetchBudget(); // Verilerini çek
+            alert("Hoş geldiniz, " + currentUser + "! 👋");
+        } else {
+            // BAŞARISIZ: Hata mesajını göster
+            alert(data.error || "Giriş başarısız.");
+        }
+    } catch (e) {
+        console.error("Giriş hatası:", e);
+        alert("Sunucuya bağlanılamadı.");
+    }
 }
 
-// Kayıt Ol (Basit Simülasyon)
-function registerUser() {
-  const username = document.getElementById("register-username").value;
-  if (!username) return alert("Lütfen kullanıcı adı girin!");
+// Kayıt Ol
+async function registerUser() {
+    const usernameInput = document.getElementById("register-username").value.trim();
 
-  alert("Kayıt Başarılı! ✅ Lütfen giriş yapın.");
-  showLogin(); // Otomatik olarak giriş ekranına yönlendir
+    if (!usernameInput) return alert("Lütfen kullanıcı adı girin!");
+
+    try {
+        // Backend'e söyle: Yeni kayıt aç
+        const res = await fetch(`${API_URL}/register`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: usernameInput })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            alert("Kayıt Başarılı! ✅ Şimdi giriş yapabilirsiniz.");
+            showLogin(); // Giriş ekranına yönlendir
+        } else {
+            alert(data.error || "Kayıt yapılamadı.");
+        }
+    } catch (e) {
+        console.error("Kayıt hatası:", e);
+        alert("Sunucu hatası.");
+    }
 }
 
 // Çıkış Yap
