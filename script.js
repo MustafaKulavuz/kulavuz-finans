@@ -54,57 +54,59 @@ async function fetchBudget() {
   }
 }
 
+// --- VERİLERİ KAYDET ---
 async function saveBudget() {
-  // 1. Kullanıcıdan Verileri Topla
-  const username = currentUser; // <-- ARTIK "c" DEĞİL, GİRİŞ YAPAN KİŞİ!
-  
-  // ... kodun geri kalanı aynı ...  const income = parseFloat(document.getElementById("income").value) || 0;
-  const rent = parseFloat(document.getElementById("rent").value) || 0;
-  const food = parseFloat(document.getElementById("food").value) || 0;
-  const transport = parseFloat(document.getElementById("transport").value) || 0;
-  const entertainment =
-    parseFloat(document.getElementById("entertainment").value) || 0;
-  const other = parseFloat(document.getElementById("other").value) || 0;
-  const rentDay = parseFloat(document.getElementById("rentDay").value) || 0;
-  const usdBirikim =
-    parseFloat(document.getElementById("usdBirikim").value) || 0;
-
-  const budgetData = {
-    username,
-    income,
-    rent,
-    food,
-    transport,
-    entertainment,
-    other,
-    rentDay,
-    usdBirikim,
-  };
-
-  try {
-    // 2. Sunucuya POST isteği gönder
-    const res = await fetch(`${API_URL}/budget`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(budgetData),
-    });
-
-    // 3. Yanıtı Kontrol Et
-    if (res.ok) {
-      const data = await res.json();
-      displayBudget(data);
-      alert("Veriler Başarıyla Kaydedildi! 💾");
-    } else {
-      const errorData = await res.json();
-    // DÜZELTME: Hem 'error' hem 'message' kontrolü ekledik.
-    throw new Error(errorData.error || errorData.message || "Bilinmeyen sunucu hatası");
+    // 1. Giriş Kontrolü
+    if (!currentUser || currentUser === "misafir") {
+        return alert("Lütfen verileri kaydetmek için önce giriş yapın!");
     }
-  } catch (e) {
-    console.error("Kaydetme hatası:", e);
-    alert(`Hata: Kaydedilemedi. Lütfen Console'u kontrol edin.`);
-  }
+
+    // 2. Verileri Topla (DOM Elemanlarının DEĞERLERİNİ (.value) alıyoruz)
+    // Hata buradaydı: .value eksik olunca kutunun kendisini gönderiyordu.
+    const incomeVal = document.getElementById("income").value;
+    const rentVal = document.getElementById("rent").value;
+    const rentDayVal = document.getElementById("rentDay").value;
+    const foodVal = document.getElementById("food").value;
+    const transportVal = document.getElementById("transport").value;
+    const entertainmentVal = document.getElementById("entertainment").value;
+    const usdBirikimVal = document.getElementById("usdBirikim").value;
+    const otherVal = document.getElementById("other").value;
+
+    // 3. Sayıya Çevir (parseFloat ile sayı yapıyoruz, boşsa 0 sayıyoruz)
+    const budgetData = {
+        username: currentUser, 
+        income: parseFloat(incomeVal) || 0,
+        rent: parseFloat(rentVal) || 0,
+        rentDay: parseFloat(rentDayVal) || 1,
+        food: parseFloat(foodVal) || 0,
+        transport: parseFloat(transportVal) || 0,
+        entertainment: parseFloat(entertainmentVal) || 0,
+        usdBirikim: parseFloat(usdBirikimVal) || 0,
+        other: parseFloat(otherVal) || 0
+    };
+
+    console.log("Gönderilen Veri:", budgetData); // Konsolda kontrol et, { income: 5000, ... } görmelisin
+
+    try {
+        const res = await fetch(`${API_URL}/budget`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(budgetData),
+        });
+
+        const result = await res.json();
+
+        if (res.ok) {
+            displayBudget(result); 
+            alert("✅ Veriler Başarıyla Kaydedildi!");
+        } else {
+            // Hata varsa backend mesajını göster
+            throw new Error(result.error || result.message || "Bilinmeyen hata");
+        }
+    } catch (e) {
+        console.error("Kaydetme hatası:", e);
+        alert("Kaydetme hatası: " + e.message);
+    }
 }
 
 // --- HESAPLAMA VE GÖSTERİM ---
