@@ -75,86 +75,86 @@
           <canvas id="budgetChart"></canvas>
         </section>
 
-        <section class="analysis-card budget-setup-card">
+       <section class="analysis-card budget-setup-card">
           <h2>✍️ Aylık Veri Girişi & Kategoriler</h2>
-          <label for="monthly-income">Aylık Gelir (TL):</label>
+          <label for="income">Aylık Gelir (TL):</label>
           <input
             type="number"
-            id="monthly-income"
+            id="income" 
             placeholder="Örn: 25000"
             required
           /><br />
 
-          <label for="rent-expense">Kira Gideri (TL):</label>
+          <label for="rent">Kira Gideri (TL):</label>
           <input
             type="number"
-            id="rent-expense"
+            id="rent"
             placeholder="Örn: 10000"
           /><br />
 
-          <label for="rent-day">Kira Ödeme Günü (Ayın Kaçı):</label>
+          <label for="rentDay">Kira Ödeme Günü (Ayın Kaçı):</label>
           <input
             type="number"
-            id="rent-day"
+            id="rentDay"
             min="1"
             max="31"
             placeholder="Örn: 25"
           /><br />
 
-          <label for="mutfak-expense">Mutfak/Gıda Gideri (TL):</label>
+          <label for="food">Mutfak/Gıda Gideri (TL):</label>
           <input
             type="number"
-            id="mutfak-expense"
+            id="food"
             placeholder="Örn: 3000"
           /><br />
 
-          <label for="ulasim-expense">Ulaşım Gideri (TL):</label>
+          <label for="transport">Ulaşım Gideri (TL):</label>
           <input
             type="number"
-            id="ulasim-expense"
+            id="transport"
             placeholder="Örn: 500"
           /><br />
 
-          <label for="eglence-expense">Eğlence/Sosyal Gider (TL):</label>
+          <label for="entertainment">Eğlence/Sosyal Gider (TL):</label>
           <input
             type="number"
-            id="eglence-expense"
+            id="entertainment"
             placeholder="Örn: 1500"
           /><br />
 
-          <label for="usd-birikim">Hedef USD Birikimi (TL karşılığı):</label>
+          <label for="usdBirikim">Hedef USD Birikimi (TL karşılığı):</label>
           <input
             type="number"
-            id="usd-birikim"
+            id="usdBirikim"
             placeholder="Örn: 100 USD karşılığı TL"
           /><br />
 
-          <label for="diger-expense">Diğer Sabit Giderler (TL):</label>
+          <label for="other">Diğer Sabit Giderler (TL):</label>
           <input
             type="number"
-            id="diger-expense"
+            id="other"
             placeholder="Faturalar, Abonelikler vb."
           /><br />
 
-          <button id="saveButton">Verileri Kaydet & Bütçeyi Hesapla</button>
+          <button id="saveButton">
+            Verileri Kaydet & Bütçeyi Hesapla
+          </button>
         </section>
-
         <hr />
 
-        <section class="balance-card">
+      <section class="balance-card">
           <h2>📊 Genel Durum</h2>
+          <p>Toplam Gelir: <span id="total-income" style="color:green">0 TL</span></p>
+          <p>Toplam Gider: <span id="total-expense" style="color:red">0 TL</span></p>
+          <p>Net Durum: <span id="net-budget" style="font-weight:bold">0 TL</span></p>
+          <hr>
+          
           <p>
-            Hedef Birikim Öncesi Bütçe:
-            <span id="available-budget" style="font-weight: bold"
-              >Hesaplanıyor...</span
-            >
+            Kalan Günlük Limit:
+            <span id="daily-limit" style="font-weight: bold">Hesaplanıyor...</span>
           </p>
-          <p>
-            Kalan Günlük Harcama Limiti:
-            <span id="daily-limit" style="font-weight: bold"
-              >Hesaplanıyor...</span
-            >
-          </p>
+          <p style="display:none"><span id="net-budget-display"></span></p> 
+
           <button onclick="checkBalance()">Bakiyem Ne Durumda?</button>
         </section>
 
