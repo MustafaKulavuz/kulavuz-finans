@@ -1,7 +1,7 @@
 // Sunucu adresi (Render.com'daki Backend adresin)
 // DİKKAT: Bu linkin sonunda /api OLMALI!
 const API_URL = "https://kulavuz-finans.onrender.com/api";
-
+let currentUser = "misafir"; // <-- BU SATIRI EKLE (Varsayılan kullanıcı)
 // --- PİYASA VERİLERİ (GÜNCEL API) ---
 // API Key istemeyen, güncel döviz kurlarını çeken fonksiyon
 async function fetchExchangeRates() {
@@ -51,8 +51,9 @@ async function fetchBudget() {
 
 async function saveBudget() {
   // 1. Kullanıcıdan Verileri Topla
-  const username = "c"; // Kullanıcı adı sabit kalsın
-  const income = parseFloat(document.getElementById("income").value) || 0;
+  const username = currentUser; // <-- ARTIK "c" DEĞİL, GİRİŞ YAPAN KİŞİ!
+  
+  // ... kodun geri kalanı aynı ...  const income = parseFloat(document.getElementById("income").value) || 0;
   const rent = parseFloat(document.getElementById("rent").value) || 0;
   const food = parseFloat(document.getElementById("food").value) || 0;
   const transport = parseFloat(document.getElementById("transport").value) || 0;
@@ -170,14 +171,22 @@ function showLogin() {
 }
 
 // Giriş Yap (Basit Simülasyon)
+// Giriş Yap
 function loginUser() {
-  const username = document.getElementById("login-username").value;
-  if (!username) return alert("Lütfen kullanıcı adı girin!");
+  const usernameInput = document.getElementById("login-username").value;
+  
+  if (!usernameInput) return alert("Lütfen kullanıcı adı girin!");
+
+  currentUser = usernameInput; // <-- İSMİ HAFIZAYA ALIYORUZ
 
   // Giriş ekranını gizle, ana uygulamayı aç
   document.getElementById("auth-container").style.display = "none";
   document.getElementById("app-container").style.display = "block";
-  alert("Hoş geldiniz, " + username + "! 👋");
+  
+  // O kişiye ait eski verileri hemen ekrana getir
+  fetchBudget(); 
+  
+  alert("Hoş geldiniz, " + currentUser + "! 👋");
 }
 
 // Kayıt Ol (Basit Simülasyon)
