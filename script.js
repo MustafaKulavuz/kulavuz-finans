@@ -154,3 +154,46 @@ document.addEventListener("DOMContentLoaded", () => {
   // Butonlara event listener ekle
   document.getElementById("saveButton").addEventListener("click", saveBudget);
 });
+
+// --- GİRİŞ VE KAYIT EKRANI GEÇİŞLERİ ---
+
+// Kayıt Formunu Göster
+function showRegister() {
+  document.getElementById("login-form").style.display = "none";
+  document.getElementById("register-form").style.display = "block";
+}
+
+// Giriş Formunu Göster
+function showLogin() {
+  document.getElementById("register-form").style.display = "none";
+  document.getElementById("login-form").style.display = "block";
+}
+
+// Giriş Yap (Basit Simülasyon)
+function loginUser() {
+  const username = document.getElementById("login-username").value;
+  if (!username) return alert("Lütfen kullanıcı adı girin!");
+
+  // Giriş ekranını gizle, ana uygulamayı aç
+  document.getElementById("auth-container").style.display = "none";
+  document.getElementById("app-container").style.display = "block";
+  alert("Hoş geldiniz, " + username + "! 👋");
+}
+
+// Kayıt Ol (Basit Simülasyon)
+function registerUser() {
+  const username = document.getElementById("register-username").value;
+  if (!username) return alert("Lütfen kullanıcı adı girin!");
+
+  alert("Kayıt Başarılı! ✅ Lütfen giriş yapın.");
+  showLogin(); // Otomatik olarak giriş ekranına yönlendir
+}
+
+// Çıkış Yap
+function logoutUser() {
+  document.getElementById("app-container").style.display = "none";
+  document.getElementById("auth-container").style.display = "block";
+  // Formları temizle
+  document.getElementById("login-username").value = "";
+  document.getElementById("login-password").value = "";
+}
