@@ -2,11 +2,10 @@
 // KÜRESEL AYARLAR VE DEĞİŞKENLER
 // ==========================================================
 
-// Render üzerindeki Backend adresiniz
 const API_URL = "https://kulavuz-tekstil-v2.onrender.com/api"; 
 let currentUsername = localStorage.getItem('username') || '';
 
-// DOM elementlerini global olarak tanımlıyoruz, değerlerini initApp'te alacağız.
+// DOM elementleri
 let loginSection, appSection, loginUsernameInput, loginPasswordInput, 
     registerUsernameInput, registerPasswordInput, loginForm, registerForm,
     totalIncomeSpan, totalExpenseSpan, netBudgetSpan, analysisDiv, dailyLimitSpan, 
@@ -19,7 +18,7 @@ let loginSection, appSection, loginUsernameInput, loginPasswordInput,
 // ==========================================================
 
 function initApp() {
-    // 1. Tüm DOM Elementleri YALNIZCA BURADA yakalanır (null hatalarını çözer)
+    // DOM Elementlerini yakala
     loginSection = document.getElementById('auth-container');
     appSection = document.getElementById('app-container');
     loginUsernameInput = document.getElementById('login-username');
@@ -29,7 +28,6 @@ function initApp() {
     loginForm = document.getElementById('login-form');
     registerForm = document.getElementById('register-form');
     
-    // Uygulama alanındaki Span'ler ve Div'ler
     totalIncomeSpan = document.getElementById('total-income');
     totalExpenseSpan = document.getElementById('total-expense');
     netBudgetSpan = document.getElementById('net-budget');
@@ -37,7 +35,6 @@ function initApp() {
     dailyLimitSpan = document.getElementById('daily-limit');
     saveButton = document.getElementById('saveButton'); 
     
-    // Giriş alanları (TÜM INPUTLARIN DOĞRU YAKALANDIĞINDAN EMİN OLUNMALI!)
     incomeInput = document.getElementById('income');
     rentInput = document.getElementById('rent');
     foodInput = document.getElementById('food');
@@ -46,24 +43,22 @@ function initApp() {
     usdBirikimInput = document.getElementById('usdBirikim');
     otherInput = document.getElementById('other');
     
-    // Piyasa/Kur alanı
     usdRateSpan = document.getElementById('usd-rate');
     goldRateSpan = document.getElementById('gold-rate');
     
-    // 2. Olay Dinleyicileri
+    // Olay Dinleyicileri (HTML'deki onclick olayları tercih edilir)
     if (saveButton) {
-        // HTML'de onclick="saveBudget()" zaten olduğu için bu satır gereksiz
-        // saveButton.addEventListener('click', saveBudget); 
+        saveButton.addEventListener('click', saveBudget);
     }
     
-    // 3. Uygulamanın başlatılması
+    // Uygulamanın başlatılması
     updateUI();
     fetchExchangeRates();
 }
 
 
 // ==========================================================
-// GİRİŞ / KAYIT / KULLANICI YÖNETİMİ
+// GİRİŞ / ÇIKIŞ / ARAYÜZ
 // ==========================================================
 
 function updateUI() {
@@ -97,11 +92,8 @@ function showLogin() {
 
 async function loginUser() {
     const username = loginUsernameInput.value.trim();
-    // Parola şu an Backend'de kullanılmıyor, ancak Frontend'de tutulur.
-    // const password = loginPasswordInput.value.trim();
-
     if (!username) {
-        alert("Lütfen tüm alanları doldurunuz.");
+        alert("Lütfen kullanıcı adı giriniz.");
         return;
     }
 
@@ -130,7 +122,6 @@ async function loginUser() {
 
 async function registerUser() {
     const username = registerUsernameInput.value.trim();
-    // const password = registerPasswordInput.value.trim();
 
     if (!username) {
         alert("Lütfen geçerli bir kullanıcı adı giriniz.");
@@ -165,7 +156,7 @@ function logoutUser() {
 }
 
 // ==========================================================
-// BÜTÇE YÖNETİMİ VE KAYIT
+// BÜTÇE YÖNETİMİ VE KAYIT (ÇALIŞAN KISIM)
 // ==========================================================
 
 async function loadBudget(username) {
@@ -192,7 +183,6 @@ async function loadBudget(username) {
 }
 
 function calculateBudget() {
-    // KRİTİK: Tüm girişlerin var olduğu varsayılır (initApp'te yakalandı)
     const income = parseFloat(incomeInput.value) || 0;
     const rent = parseFloat(rentInput.value) || 0;
     const food = parseFloat(foodInput.value) || 0;
@@ -216,28 +206,17 @@ function displayBudget() {
     totalIncomeSpan.textContent = `${income.toFixed(2)} TL`;
     totalExpenseSpan.textContent = `${totalExpenses.toFixed(2)} TL`;
     netBudgetSpan.textContent = `${netBudget.toFixed(2)} TL`;
-
     dailyLimitSpan.textContent = dailyLimit + ' TL';
 
-    if (netBudget > 0) {
-        fetchAnalysis({
-            income: income.toFixed(2),
-            expenses: totalExpenses.toFixed(2),
-            net: netBudget.toFixed(2),
-            dailyLimit: dailyLimit
-        });
-    } else {
-        analysisDiv.innerHTML = '<p class="error-text">Analiz için net bütçenin pozitif olması gerekir.</p>';
-    }
+    // Yapay Zeka Analizi kaldırıldı, sadece placeholder gösteriliyor
+    analysisDiv.innerHTML = '<p class="info-text">Yapay Zeka Analizi, hız ve kararlılık için devre dışı bırakıldı.</p>';
 }
 
 async function saveBudget() {
     const budgetData = calculateBudget();
     
-    // [KRİTİK DÜZELTME] Kayıt payload'unu oluştururken,
-    // tüm budget verilerini doğru şekilde Backend'e gönderiyoruz.
     const budgetPayload = {
-        username: currentUsername, // En önemli kısım: Kayıt için kullanıcı adı
+        username: currentUsername, 
         budget: {
             income: budgetData.income,
             rent: parseFloat(rentInput.value) || 0,
@@ -258,7 +237,7 @@ async function saveBudget() {
 
         if (response.ok) {
             displayBudget();
-            alert("Bütçe verileri kaydedildi ve analiz başlatıldı.");
+            alert("Bütçe verileri kaydedildi.");
         } else {
             const data = await response.json();
             alert("Kaydetme Hatası: " + data.error);
@@ -270,44 +249,11 @@ async function saveBudget() {
 }
 
 // ==========================================================
-// YAPAY ZEKA VE KUR BİLGİSİ
+// KUR BİLGİSİ
 // ==========================================================
 
-async function fetchAnalysis({ income, expenses, net, dailyLimit }) {
-    analysisDiv.innerHTML = '<p>Analiz bekleniyor...</p>';
-
-    try {
-        const query = new URLSearchParams({
-            username: currentUsername,
-            income,
-            expenses,
-            net,
-            dailyLimit
-        }).toString();
-
-        const response = await fetch(`${API_URL}/analyze?${query}`);
-        
-        const data = await response.json();
-
-        if (response.ok) {
-            let analysis = data.analysis;
-            
-            // Hugging Face yanıt temizliği
-            const promptStart = `Kullanıcı: ${currentUsername}. Aylık Gelir: ${income} TL.`;
-            let cleanAnalysis = analysis.substring(analysis.indexOf(promptStart) + promptStart.length).trim();
-            
-            analysisDiv.innerHTML = `<pre>${cleanAnalysis}</pre>`; 
-        } else {
-            analysisDiv.innerHTML = `<p class="error-text">Hata: Analiz edilemedi. ${data.error || 'Bilinmeyen Hata'}</p>`;
-        }
-    } catch (error) {
-        console.error("Analiz Fetch Hatası:", error);
-        analysisDiv.innerHTML = `<p class="error-text">Bağlantı Hatası: Sunucuya ulaşılamıyor veya API yolları hatalı.</p>`;
-    }
-}
-
 async function fetchExchangeRates() {
-    // USD oranı çekme 
+    // Kur çekme kodları
     try {
         const response = await fetch(`https://open.er-api.com/v6/latest/USD`);
         const data = await response.json();
@@ -322,7 +268,6 @@ async function fetchExchangeRates() {
         if (usdRateSpan) usdRateSpan.textContent = 'Hata';
     }
 
-    // Altın çekme (Placeholder)
     if (goldRateSpan) {
         goldRateSpan.textContent = '4.500 TL (Placeholder)';
     }

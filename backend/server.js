@@ -3,20 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
-// Hugging Face Paketi Kontrolü
-const { HfInference } = require("@huggingface/inference");
-let ai;
-const MODEL_NAME = "gpt2"; 
-
-try {
-    // KRİTİK AYAR: API adresi hatasını çözmek için router adresini kullanır.
-    ai = new HfInference({
-        endpoint: "https://router.huggingface.co/models" 
-    }); 
-} catch (e) {
-    console.error("KRİTİK HATA: Hugging Face paketi başlatılamadı!", e.message);
-    ai = null; 
-}
+// AI require satırları silindi
 
 // Model dosyasını çağırma (models/Budget.js olduğunu varsayar)
 const Budget = require('./models/Budget');
@@ -70,16 +57,15 @@ app.get('/api/budget', async (req, res) => {
     }
 });
 
-// 4. VERİ KAYDET (POST /api/budget) - [KRİTİK DÜZELTME]
+// 4. VERİ KAYDET (POST /api/budget) - [ÇALIŞAN VERİ KAYIT YOLU]
 app.post('/api/budget', async (req, res) => {
     try {
         const { username } = req.body;
-        if (!username) return res.status(400).json({ error: "Kullanıcı adı EKSİK! Kayıt yapılmadı." });
+        if (!username) return res.status(400).json({ error: "Kullanıcı adı EKSİK!" });
         
-        // Veri tabanında kullanıcı adına göre kaydı bul veya yeni oluştur (upsert: true)
         const updated = await Budget.findOneAndUpdate(
-            { username: username }, // Kullanıcı adını filtrele
-            req.body,               // Tüm gelen veriyi (username ve budget objesi) kaydet
+            { username: username }, 
+            req.body,               
             { new: true, upsert: true, runValidators: true }
         );
         res.json(updated);
@@ -88,38 +74,7 @@ app.post('/api/budget', async (req, res) => {
     }
 });
 
-// 5. YAPAY ZEKA ANALİZİ (GET)
-app.get('/api/analyze', async (req, res) => {
-    try {
-        if (!ai) {
-            return res.status(500).json({ error: "AI servisi kapalı." });
-        }
-        
-        const { username, income, expenses, net, dailyLimit } = req.query;
-
-        const prompt = `
-            Kullanıcı: ${username}. Aylık Gelir: ${income} TL. Aylık Gider: ${expenses} TL. Net Bütçe: ${net} TL.
-            Bu bütçe verilerine dayanarak, kullanıcıya hitap eden 100 kelimelik bir finansal analiz yap ve 3 tane kişiselleştirilmiş finansal tavsiye ver. Tavsiyeleri kısa ve madde madde listele. Cevabı sadece analiz ve tavsiyeler olarak Türkçe yaz.
-        `;
-
-        const response = await ai.textGeneration({
-            model: MODEL_NAME,
-            inputs: prompt,
-            parameters: {
-                max_new_tokens: 300,
-                temperature: 0.8
-            }
-        });
-
-        const analysisText = response.generated_text || response; 
-
-        res.json({ analysis: analysisText });
-
-    } catch (err) {
-        console.error("Yapay Zeka Analiz Hatası:", err);
-        res.status(500).json({ error: "Hugging Face Analiz Hatası: " + err.message });
-    }
-});
+// 5. YAPAY ZEKA ANALİZİ YOLU KALDIRILDI.
 
 // PORT DİNLEME
 const PORT = process.env.PORT || 5000;
