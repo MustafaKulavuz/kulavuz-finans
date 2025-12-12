@@ -6,10 +6,10 @@ require('dotenv').config();
 // Hugging Face Paketi Kontrolü
 const { HfInference } = require("@huggingface/inference");
 let ai;
-const MODEL_NAME = "gpt2"; 
+const MODEL_NAME = "gpt2"; // Ücretsiz ve hızlı bir metin oluşturma modeli
 
 try {
-    // API adresi hatasını çözmek için KRİTİK ayar.
+    // KRİTİK AYAR: Adres hatasını çözmek için yeni router adresini belirtiyoruz.
     ai = new HfInference({
         endpoint: "https://router.huggingface.co/models" 
     }); 
