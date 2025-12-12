@@ -3,21 +3,25 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
-// AI Paketi Kontrolü
-let GoogleGenAI;
+// DeepSeek için OpenAI SDK'sını kullanıyoruz
+const { OpenAI } = require("openai"); 
+let ai;
+
 try {
-    // Paketi dışarıdan alıyoruz
-    GoogleGenAI = require("@google/genai").GoogleGenAI;
+    // DeepSeek API bağlantısı
+    // baseURL, DeepSeek'in API endpoint'i olmalıdır.
+    ai = new OpenAI({
+        apiKey: process.env.DEEPSEEK_API_KEY, // Yeni anahtar adını kullanın
+        baseURL: "https://api.deepseek.com/v1" // DeepSeek için doğru endpoint
+    });
 } catch (e) {
-    console.error("KRİTİK HATA: AI PAKETİ BULUNAMADI! Lütfen 'npm install @google/genai' komutunu çalıştırın.");
-    GoogleGenAI = null; 
+    console.error("KRİTİK HATA: OpenAI paketi başlatılamadı! Lütfen 'npm install openai' komutunu çalıştırın.");
+    ai = null;
 }
+
 
 // Model dosyasını çağırma
 const Budget = require('./models/Budget');
-
-// AI servis bağlantısı
-const ai = GoogleGenAI ? new GoogleGenAI(process.env.GEMINI_API_KEY) : null; 
 
 const app = express();
 app.use(cors());
@@ -32,35 +36,34 @@ mongoose.connect(process.env.MONGO_URI)
 // API YOLLARI
 // ==========================================================
 
-// ... (Giriş, Kayıt, Kaydetme yolları burada devam ediyor) ... 
-
-app.post('/api/login',async (req, res)=>{
+// 1. GİRİŞ (Login)
+app.post('/api/login', async (req, res) => {
     try {
-       const { username } = req.body; 
-       //kullanıcıyı budget modelini arıyoruz
-       const user = await Budget.findOne({username});
-       if(user) res.json({success:true});
-       else res.status(404).json({error:"Kullanıcı bulunamadı lütfen kayıt olun."});
-       
+        const { username } = req.body;
+        // Kullanıcıyı Budget modelinde arıyoruz
+        const user = await Budget.findOne({ username }); 
+        if (user) res.json({ success: true });
+        else res.status(404).json({ error: "Kullanıcı bulunamadı. Lütfen kayıt olun." });
     } catch (e) {
-        res.status(500).json({error:e.message});
+        res.status(500).json({ error: e.message });
     }
 });
 
-//2.kayıt
-app.post('/api/register',async (req, res)=>{
+// 2. KAYIT (Register)
+app.post('/api/register', async (req, res) => {
     try {
-        const { username } = req.body; 
-        if(await Budget.findOne({username})) return res.status(400).json({error:"Kullanıcı zaten mevcut lütfen giriş yapın."});
-        await new Budget({username}).save();
-        res.json({success:true});
+        const { username } = req.body;
+        if(await Budget.findOne({ username })) return res.status(400).json({ error: "Bu kullanıcı adı zaten alınmış." });
         
+        // Yeni Budget belgesi oluşturup kaydediyoruz
+        await new Budget({ username }).save();
+        res.json({ success: true });
     } catch (e) {
-        res.status(500).json({error:e.message});
+        res.status(500).json({ error: e.message });
     }
 });
 
-//3 veri egtir get
+// 3. VERİ GETİR (GET /api/budget)
 app.get('/api/budget', async (req, res) => {
     try {
         const username = req.query.user;
@@ -93,11 +96,13 @@ app.post('/api/budget', async (req, res) => {
         res.status(500).json({ error: "Kaydetme başarısız: " + e.message });
     }
 });
-// 5. YAPAY ZEKA ANALİZİ (GET) - (GÜVENLİK EKLENDİ)
+
+
+// 5. YAPAY ZEKA ANALİZİ (GET) - DeepSeek Entegrasyonu
 app.get('/api/analyze', async (req, res) => {
     try {
         if (!ai) {
-             return res.status(500).json({ error: "AI servisi kapalı. Lütfen sunucu loglarını ve 'npm install' kontrol edin." });
+            return res.status(500).json({ error: "AI servisi kapalı. Lütfen sunucu loglarını ve 'npm install openai' kontrol edin." });
         }
         
         const { username, income, expenses, net, dailyLimit } = req.query;
@@ -106,9 +111,9 @@ app.get('/api/analyze', async (req, res) => {
             return res.status(400).json({ error: "Kullanıcı adı eksik." });
         }
         
-        // API KEY kontrolü (Hata vermemesi için)
-        if (!process.env.GEMINI_API_KEY) {
-            return res.status(500).json({ error: "API Anahtarı (GEMINI_API_KEY) ortam değişkenlerinde tanımlı değil!" });
+        // Anahtar kontrolü
+        if (!process.env.DEEPSEEK_API_KEY) {
+            return res.status(500).json({ error: "API Anahtarı (DEEPSEEK_API_KEY) ortam değişkenlerinde tanımlı değil!" });
         }
 
         const prompt = `
@@ -121,30 +126,31 @@ app.get('/api/analyze', async (req, res) => {
             Bu bütçe verilerine dayanarak, kullanıcıya hitap eden 100 kelimelik bir analiz yap ve bu analiz sonucunda 3 tane kişiselleştirilmiş finansal tavsiye ver. Tavsiyeleri kısa ve madde madde listele. Cevabı sadece analiz ve tavsiyeler olarak Türkçe yaz.
         `;
 
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
+        // DeepSeek API çağrısı
+        const response = await ai.chat.completions.create({
+            model: 'deepseek-chat', 
+            messages: [{ role: "user", content: prompt }],
+            max_tokens: 400, // Çıktıyı sınırla
         });
 
-        const analysisText = response.text; 
+        const analysisText = response.choices[0].message.content; 
 
         res.json({ analysis: analysisText });
 
     } catch (err) {
         console.error("Yapay Zeka Analiz Hatası:", err);
         // Hata API Key'den kaynaklanıyorsa detaylı mesaj ver.
-        let errorMessage = err.message.includes("API_KEY_INVALID") ? "API Anahtarınız Hatalı veya Geçersiz." : err.message;
-        res.status(500).json({ error: "Analiz Hatası: " + errorMessage });
+        res.status(500).json({ error: "Analiz Hatası: DeepSeek bağlantı hatası veya anahtar geçersiz. " + err.message });
     }
 });
-// ... (app.listen ve PORT kısmı burada devam eder) ...
+
+
 // ==========================================================
-// PORT DİNLEME (Bu kod server.js'nin en sonunda olmalıdır)
+// PORT DİNLEME
 // ==========================================================
 
 const PORT = process.env.PORT || 5000;
 
-// app.listen komutu sunucuyu başlatır
 app.listen(PORT, () => {
     console.log(`🚀 Sunucu Port: ${PORT} üzerinde çalışıyor.`);
 });
