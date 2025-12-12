@@ -1,5 +1,5 @@
 // Sunucu adresi (Render.com'daki Backend adresiniz)
-const API_URL = "https://kulavuz-finans.onrender.com/api";
+const API_URL = "https://kulavuz-tekstil-v2.onrender.com/api";
 let currentUser = "misafir"; // Giriş yapan kullanıcının adını tutar
 
 // ==========================================================
