@@ -11,6 +11,6 @@
     "mongoose": "^8.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "@huggingface/inference": "^2.0.0"  
+    "@huggingface/inference": "^2.0.0" 
   }
 }

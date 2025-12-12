@@ -3,51 +3,82 @@
 // ==========================================================
 
 // Render üzerindeki Backend adresiniz
-// Proje adınız kulavuz-tekstil-v2 olduğu için bu adresi kullanıyoruz.
 const API_URL = "https://kulavuz-tekstil-v2.onrender.com/api"; 
 
 // Kullanıcı Adı (Global veya Local Storage'dan çekilir)
 let currentUsername = localStorage.getItem('username') || '';
 
-// DOM Elementleri
-const loginSection = document.getElementById('login-section');
-const appSection = document.getElementById('app-section');
-const usernameDisplay = document.getElementById('username-display');
-const budgetDisplay = document.getElementById('budget-display');
-const analysisDiv = document.getElementById('analysis-output');
+// DOM Elementleri - HTML'deki yeni ID'lere uyarlandı
+const loginSection = document.getElementById('auth-container'); // DÜZELTİLDİ: 'auth-container'
+const appSection = document.getElementById('app-container');   // DÜZELTİLDİ: 'app-container'
+
+// Diğer DOM Elementleri (HTML'inizdeki ID'lere göre güncellendi)
+const loginUsernameInput = document.getElementById('login-username');
+const registerUsernameInput = document.getElementById('register-username');
+const loginPasswordInput = document.getElementById('login-password');
+const registerPasswordInput = document.getElementById('register-password');
+
+const loginForm = document.getElementById('login-form');
+const registerForm = document.getElementById('register-form');
+
+
+const usernameDisplay = document.getElementById('username-display'); // HTML'inizde yok, ama kalsın
+const totalIncomeSpan = document.getElementById('total-income');
+const totalExpenseSpan = document.getElementById('total-expense');
+const netBudgetSpan = document.getElementById('net-budget');
+const analysisDiv = document.getElementById('analysis-summary'); // HTML'de düzeltildi
 const dailyLimitSpan = document.getElementById('daily-limit');
+const saveButton = document.getElementById('saveButton');
+
+// Gider Girişleri
 const incomeInput = document.getElementById('income');
 const rentInput = document.getElementById('rent');
 const foodInput = document.getElementById('food');
 const transportInput = document.getElementById('transport');
-const funInput = document.getElementById('fun');
+const entertainmentInput = document.getElementById('entertainment'); // HTML'deki ID
+const usdBirikimInput = document.getElementById('usdBirikim');      // HTML'deki ID
 const otherInput = document.getElementById('other');
-const currencyDisplay = document.getElementById('currency-display');
-const currencySelect = document.getElementById('currency');
 
 // ==========================================================
 // GİRİŞ / KAYIT / KULLANICI YÖNETİMİ
 // ==========================================================
 
 function updateUI() {
-    if (currentUsername) {
-        loginSection.style.display = 'none';
-        appSection.style.display = 'block';
-        usernameDisplay.textContent = currentUsername;
-        loadBudget(currentUsername);
-        fetchExchangeRates(); // Kur bilgisini yükle
-    } else {
-        loginSection.style.display = 'block';
-        appSection.style.display = 'none';
-        usernameDisplay.textContent = '';
-        analysisDiv.innerHTML = '';
+    if (loginSection && appSection) {
+        if (currentUsername) {
+            loginSection.style.display = 'none';
+            appSection.style.display = 'flex'; // app-container'ın style'ını ayarla
+            // usernameDisplay.textContent = currentUsername; // HTML'de bu span yok
+            loadBudget(currentUsername);
+        } else {
+            loginSection.style.display = 'flex';
+            appSection.style.display = 'none';
+        }
     }
 }
 
+// Yeni: Form gösterme fonksiyonları (HTML'deki onclick olayları için)
+function showRegister() {
+    if (loginForm && registerForm) {
+        loginForm.style.display = 'none';
+        registerForm.style.display = 'block';
+    }
+}
+
+function showLogin() {
+    if (loginForm && registerForm) {
+        loginForm.style.display = 'block';
+        registerForm.style.display = 'none';
+    }
+}
+
+
 async function loginUser() {
-    const username = document.getElementById('login-username').value.trim();
-    if (!username) {
-        alert("Lütfen bir kullanıcı adı giriniz.");
+    const username = loginUsernameInput.value.trim();
+    const password = loginPasswordInput.value.trim(); // HTML'de parola var
+
+    if (!username || !password) {
+        alert("Lütfen tüm alanları doldurunuz.");
         return;
     }
 
@@ -55,7 +86,7 @@ async function loginUser() {
         const response = await fetch(`${API_URL}/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username })
+            body: JSON.stringify({ username, password })
         });
 
         const data = await response.json();
@@ -75,23 +106,29 @@ async function loginUser() {
 }
 
 async function registerUser() {
-    const username = document.getElementById('login-username').value.trim();
-    if (!username) {
-        alert("Lütfen bir kullanıcı adı giriniz.");
+    const username = registerUsernameInput.value.trim();
+    const password = registerPasswordInput.value.trim();
+
+    if (!username || !password || password.length < 6) {
+        alert("Lütfen geçerli bir kullanıcı adı ve en az 6 karakterli parola giriniz.");
         return;
     }
+    
+    // NOT: Backend'de parola karşılaştırması yapılmadığı için,
+    // sadece kullanıcı adı ile kayıt yapılacaktır.
 
     try {
         const response = await fetch(`${API_URL}/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username })
+            body: JSON.stringify({ username, password }) 
         });
 
         const data = await response.json();
 
         if (response.ok) {
             alert("Kayıt başarılı! Şimdi giriş yapabilirsiniz.");
+            showLogin(); // Kayıttan sonra giriş formunu göster
         } else {
             alert("Kayıt Hatası: " + data.error);
         }
@@ -104,8 +141,6 @@ async function registerUser() {
 function logoutUser() {
     localStorage.removeItem('username');
     currentUsername = '';
-    updateUI();
-    // Sayfayı tamamen yenile
     window.location.reload(); 
 }
 
@@ -125,7 +160,11 @@ async function loadBudget(username) {
             rentInput.value = data.budget.rent || '';
             foodInput.value = data.budget.food || '';
             transportInput.value = data.budget.transport || '';
-            funInput.value = data.budget.fun || '';
+            
+            // HTML'de entertainment ve usdBirikim ID'leri var.
+            entertainmentInput.value = data.budget.entertainment || '';
+            usdBirikimInput.value = data.budget.usdBirikim || '';
+            
             otherInput.value = data.budget.other || '';
         }
         displayBudget();
@@ -140,13 +179,13 @@ function calculateBudget() {
     const rent = parseFloat(rentInput.value) || 0;
     const food = parseFloat(foodInput.value) || 0;
     const transport = parseFloat(transportInput.value) || 0;
-    const fun = parseFloat(funInput.value) || 0;
+    const entertainment = parseFloat(entertainmentInput.value) || 0; // Yeni
+    const usdBirikim = parseFloat(usdBirikimInput.value) || 0;       // Yeni
     const other = parseFloat(otherInput.value) || 0;
 
-    const totalExpenses = rent + food + transport + fun + other;
+    const totalExpenses = rent + food + transport + entertainment + usdBirikim + other; // Tümü toplanır
     const netBudget = income - totalExpenses;
     
-    // Basit bir aylık gün hesaplaması
     const daysInMonth = 30; 
     const dailyLimit = netBudget > 0 ? (netBudget / daysInMonth).toFixed(2) : 0;
 
@@ -156,15 +195,12 @@ function calculateBudget() {
 function displayBudget() {
     const { income, totalExpenses, netBudget, dailyLimit } = calculateBudget();
     
-    budgetDisplay.innerHTML = `
-        <p>Toplam Gelir: <strong>${income.toFixed(2)} TL</strong></p>
-        <p>Toplam Gider: <strong>${totalExpenses.toFixed(2)} TL</strong></p>
-        <p>Net Kalan Bütçe: <strong>${netBudget.toFixed(2)} TL</strong></p>
-    `;
+    totalIncomeSpan.textContent = `${income.toFixed(2)} TL`;
+    totalExpenseSpan.textContent = `${totalExpenses.toFixed(2)} TL`;
+    netBudgetSpan.textContent = `${netBudget.toFixed(2)} TL`;
 
     dailyLimitSpan.textContent = dailyLimit + ' TL';
 
-    // Sadece net bütçe pozitifse analizi çağır
     if (netBudget > 0) {
         fetchAnalysis({
             income: income.toFixed(2),
@@ -187,7 +223,8 @@ async function saveBudget() {
             rent: parseFloat(rentInput.value) || 0,
             food: parseFloat(foodInput.value) || 0,
             transport: parseFloat(transportInput.value) || 0,
-            fun: parseFloat(funInput.value) || 0,
+            entertainment: parseFloat(entertainmentInput.value) || 0,
+            usdBirikim: parseFloat(usdBirikimInput.value) || 0,
             other: parseFloat(otherInput.value) || 0,
         }
     };
@@ -216,11 +253,11 @@ async function saveBudget() {
 // YAPAY ZEKA ANALİZİ (HUGGING FACE)
 // ==========================================================
 
+// NOT: Bu fonksiyon, server.js'deki /analyze yolunu çağırır
 async function fetchAnalysis({ income, expenses, net, dailyLimit }) {
     analysisDiv.innerHTML = '<p>Analiz bekleniyor...</p>';
 
     try {
-        // Tüm veriler URL sorgu parametreleri olarak gönderiliyor
         const query = new URLSearchParams({
             username: currentUsername,
             income,
@@ -234,17 +271,20 @@ async function fetchAnalysis({ income, expenses, net, dailyLimit }) {
         const data = await response.json();
 
         if (response.ok) {
-            // Yanıt genellikle çok uzun ve gereksiz metin içerir, temizlenmeli.
             let analysis = data.analysis;
+            
+            // Hugging Face'den gelen girdiyi temizle (Model girdiyi tekrar edebilir)
+            const promptStart = `Kullanıcı: ${currentUsername}. Aylık Gelir: ${income} TL.`;
+            let cleanAnalysis = analysis.substring(analysis.indexOf(promptStart) + promptStart.length).trim();
+            
+            // Hâlâ gürültü varsa baştan temizle
+            if (cleanAnalysis.startsWith('Bu bütçe verilerine dayanarak,')) {
+                cleanAnalysis = cleanAnalysis.substring(cleanAnalysis.indexOf('verilerine dayanarak,')).trim();
+            }
 
-            // Hugging Face GPT-2'den gelen gürültüyü temizle
-            analysis = analysis.replace(new RegExp(query, 'g'), '');
-            analysis = analysis.substring(analysis.indexOf(' TL') + 3); // İlk TL'den sonrasını al
-            analysis = analysis.trim();
-
-            analysisDiv.innerHTML = `<pre>${analysis}</pre>`;
+            // HTML'inizde <p class="analysis-text" id="analysis-summary"> var
+            analysisDiv.innerHTML = `<pre>${cleanAnalysis}</pre>`; 
         } else {
-            // API'den gelen hatayı göster (Örn: AI servisi kapalı, API anahtarı hatalı)
             analysisDiv.innerHTML = `<p class="error-text">Hata: Analiz edilemedi. ${data.error || 'Bilinmeyen Hata'}</p>`;
         }
     } catch (error) {
@@ -257,39 +297,42 @@ async function fetchAnalysis({ income, expenses, net, dailyLimit }) {
 // KUR BİLGİSİ
 // ==========================================================
 
+// NOT: HTML'de currencySelect ve currencyDisplay ID'leri yok, 
+// o yüzden bu fonksiyon şimdilik sadece varsayılanı kullanır.
 async function fetchExchangeRates() {
-    const selectedCurrency = currencySelect.value;
-    if (selectedCurrency === 'USD') {
-        currencyDisplay.textContent = '₺1 = $0.030'; // Varsayılan değer
-        return;
-    }
-
+    // HTML'inizdeki ID'lere göre uyarlanmıştır
+    const usdRateSpan = document.getElementById('usd-rate');
+    const goldRateSpan = document.getElementById('gold-rate');
+    
+    // USD oranı çekme (varsayılan)
     try {
-        // Ücretsiz ve güvenilir bir kur API'si
-        const response = await fetch(`https://open.er-api.com/v6/latest/TRY`);
-        if (!response.ok) throw new Error("Kur çekme hatası");
-
+        const response = await fetch(`https://open.er-api.com/v6/latest/USD`);
         const data = await response.json();
         
-        if (data.rates && data.rates[selectedCurrency]) {
-            const rate = data.rates[selectedCurrency].toFixed(4);
-            currencyDisplay.textContent = `₺1 = ${selectedCurrency}${rate}`;
+        if (data.rates && data.rates.TRY) {
+             // 1 USD kaç TL
+            const usdToTry = data.rates.TRY.toFixed(2); 
+            usdRateSpan.textContent = `1 USD = ${usdToTry} TL`;
         } else {
-            throw new Error("Geçerli kur bulunamadı");
+            usdRateSpan.textContent = 'Veri çekilemedi';
         }
-
-    } catch (error) {
-        console.error("Kur çekme hatası:", error);
-        currencyDisplay.textContent = 'Kur çekilemedi';
+    } catch (e) {
+        usdRateSpan.textContent = 'Hata';
     }
+
+    // Altın çekme (HTML'de ID var, ama API yok, sadece placeholder)
+    goldRateSpan.textContent = '4.500 TL (Placeholder)';
 }
 
 // ==========================================================
 // BAŞLANGIÇ
 // ==========================================================
 
+// Giriş butonuna tıklanınca saveBudget fonksiyonunu çağır
+if (saveButton) {
+    saveButton.addEventListener('click', saveBudget);
+}
+
 // Sayfa yüklendiğinde arayüzü güncelle
 document.addEventListener('DOMContentLoaded', updateUI);
-
-// Para birimi seçimi değiştiğinde kur bilgisini güncelle
-currencySelect.addEventListener('change', fetchExchangeRates);
+document.addEventListener('DOMContentLoaded', fetchExchangeRates);

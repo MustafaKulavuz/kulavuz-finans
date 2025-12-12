@@ -6,13 +6,12 @@ require('dotenv').config();
 // Hugging Face Paketi Kontrolü
 const { HfInference } = require("@huggingface/inference");
 let ai;
-const MODEL_NAME = "gpt2"; // Ücretsiz ve hızlı bir metin oluşturma modeli
+const MODEL_NAME = "gpt2"; // Ücretsiz ve hızlı metin oluşturma modeli
 
 try {
-    // Yeni router adresini belirterek bağlantı kuruyoruz (Hata çözümü için KRİTİK)
+    // Yeni router adresini belirterek bağlantı kuruyoruz (API adresi hatası çözümü)
     ai = new HfInference({
         endpoint: "https://router.huggingface.co/models" 
-        // HF_ACCESS_TOKEN: process.env.HF_API_KEY // İhtiyaç duyarsanız HF API anahtarınızı buradan ekleyebilirsiniz
     }); 
 } catch (e) {
     console.error("KRİTİK HATA: Hugging Face paketi başlatılamadı!", e.message);
@@ -101,7 +100,6 @@ app.get('/api/analyze', async (req, res) => {
             Bu bütçe verilerine dayanarak, kullanıcıya hitap eden 100 kelimelik bir finansal analiz yap ve 3 tane kişiselleştirilmiş finansal tavsiye ver. Tavsiyeleri kısa ve madde madde listele. Cevabı sadece analiz ve tavsiyeler olarak Türkçe yaz.
         `;
 
-        // Hugging Face API çağrısı
         const response = await ai.textGeneration({
             model: MODEL_NAME,
             inputs: prompt,
@@ -111,14 +109,12 @@ app.get('/api/analyze', async (req, res) => {
             }
         });
 
-        // Yanıt formatı Hugging Face'e göredir.
         const analysisText = response.generated_text || response; 
 
         res.json({ analysis: analysisText });
 
     } catch (err) {
         console.error("Yapay Zeka Analiz Hatası:", err);
-        // Hugging Face'de hız/kota aşımı olabilir.
         res.status(500).json({ error: "Hugging Face Analiz Hatası: " + err.message });
     }
 });
