@@ -1,338 +1,299 @@
-// ==========================================================
-// KÜRESEL AYARLAR VE DEĞİŞKENLER
-// ==========================================================
-
-// Render üzerindeki Backend adresiniz
-const API_URL = "https://kulavuz-tekstil-v2.onrender.com/api"; 
-
-// Kullanıcı Adı (Global veya Local Storage'dan çekilir)
-let currentUsername = localStorage.getItem('username') || '';
-
-// DOM Elementleri - HTML'deki yeni ID'lere uyarlandı
-const loginSection = document.getElementById('auth-container'); // DÜZELTİLDİ: 'auth-container'
-const appSection = document.getElementById('app-container');   // DÜZELTİLDİ: 'app-container'
-
-// Diğer DOM Elementleri (HTML'inizdeki ID'lere göre güncellendi)
-const loginUsernameInput = document.getElementById('login-username');
-const registerUsernameInput = document.getElementById('register-username');
-const loginPasswordInput = document.getElementById('login-password');
-const registerPasswordInput = document.getElementById('register-password');
-
-const loginForm = document.getElementById('login-form');
-const registerForm = document.getElementById('register-form');
-
-
-const usernameDisplay = document.getElementById('username-display'); // HTML'inizde yok, ama kalsın
-const totalIncomeSpan = document.getElementById('total-income');
-const totalExpenseSpan = document.getElementById('total-expense');
-const netBudgetSpan = document.getElementById('net-budget');
-const analysisDiv = document.getElementById('analysis-summary'); // HTML'de düzeltildi
-const dailyLimitSpan = document.getElementById('daily-limit');
-const saveButton = document.getElementById('saveButton');
-
-// Gider Girişleri
-const incomeInput = document.getElementById('income');
-const rentInput = document.getElementById('rent');
-const foodInput = document.getElementById('food');
-const transportInput = document.getElementById('transport');
-const entertainmentInput = document.getElementById('entertainment'); // HTML'deki ID
-const usdBirikimInput = document.getElementById('usdBirikim');      // HTML'deki ID
-const otherInput = document.getElementById('other');
+// Sunucu adresi (Render.com'daki Backend adresiniz)
+const API_URL = "https://kulavuz-tekstil-v2.onrender.com/api";
+let currentUser = "misafir"; // Giriş yapan kullanıcının adını tutar
 
 // ==========================================================
-// GİRİŞ / KAYIT / KULLANICI YÖNETİMİ
+// 1. PİYASA VERİLERİ FONKSİYONU
 // ==========================================================
+async function fetchExchangeRates() {
+  const defaultRate = 35.5; 
 
-function updateUI() {
-    if (loginSection && appSection) {
-        if (currentUsername) {
-            loginSection.style.display = 'none';
-            appSection.style.display = 'flex'; // app-container'ın style'ını ayarla
-            // usernameDisplay.textContent = currentUsername; // HTML'de bu span yok
-            loadBudget(currentUsername);
-        } else {
-            loginSection.style.display = 'flex';
-            appSection.style.display = 'none';
-        }
+  try {
+    const res = await fetch("https://open.er-api.com/v6/latest/USD");
+    if (!res.ok) {
+      throw new Error(`API isteği başarısız: ${res.status}`);
     }
+
+    const data = await res.json();
+    let rate = data.rates.TRY;
+    const ons = 2400; // Ons Altın Varsayılan Fiyatı
+    const gram = (ons * rate) / 31.1035;
+
+    document.getElementById("usd-rate").textContent = rate.toFixed(2) + " TL";
+    document.getElementById("gold-rate").textContent = gram.toFixed(2) + " TL";
+  } catch (e) {
+    console.error("Kur çekme hatası:", e);
+    document.getElementById("usd-rate").textContent = defaultRate.toFixed(2) + " TL (Hata)";
+    document.getElementById("gold-rate").textContent = "Hesaplanamadı";
+  }
 }
 
-// Yeni: Form gösterme fonksiyonları (HTML'deki onclick olayları için)
-function showRegister() {
-    if (loginForm && registerForm) {
-        loginForm.style.display = 'none';
-        registerForm.style.display = 'block';
-    }
-}
+// ==========================================================
+// 2. ANALİZ FONKSİYONU (BACKEND'E SORAR)
+// ==========================================================
+async function fetchAnalysis(budget) {
+    if (!currentUser || !budget || !budget.income) return; 
 
-function showLogin() {
-    if (loginForm && registerForm) {
-        loginForm.style.display = 'block';
-        registerForm.style.display = 'none';
-    }
-}
-
-
-async function loginUser() {
-    const username = loginUsernameInput.value.trim();
-    const password = loginPasswordInput.value.trim(); // HTML'de parola var
-
-    if (!username || !password) {
-        alert("Lütfen tüm alanları doldurunuz.");
-        return;
-    }
-
-    try {
-        const response = await fetch(`${API_URL}/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            localStorage.setItem('username', username);
-            currentUsername = username;
-            updateUI();
-            alert("Giriş başarılı!");
-        } else {
-            alert("Giriş Hatası: " + data.error);
-        }
-    } catch (error) {
-        console.error("Giriş Hatası:", error);
-        alert("Giriş Hatası: Sunucuya ulaşılamıyor veya ağ bağlantısı hatası.");
-    }
-}
-
-async function registerUser() {
-    const username = registerUsernameInput.value.trim();
-    const password = registerPasswordInput.value.trim();
-
-    if (!username || !password || password.length < 6) {
-        alert("Lütfen geçerli bir kullanıcı adı ve en az 6 karakterli parola giriniz.");
-        return;
-    }
+    // Gider ve limit hesaplamaları (Analiz için gerekiyor)
+    const totalExpenses = (budget.rent || 0) + (budget.food || 0) + (budget.transport || 0) + (budget.entertainment || 0) + (budget.other || 0);
+    const netBudget = budget.income - totalExpenses; 
     
-    // NOT: Backend'de parola karşılaştırması yapılmadığı için,
-    // sadece kullanıcı adı ile kayıt yapılacaktır.
+    const today = new Date();
+    const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    const remainingDays = daysInMonth - today.getDate() + 1;
+    const dailyLimit = remainingDays > 0 ? (netBudget / remainingDays) : 0;
+
+    // Loading mesajını göster
+    document.getElementById("analysis-summary").textContent = "Yapay zeka analiz ediliyor, lütfen bekleyin...";
+    document.getElementById("suggestions-list").innerHTML = "<li>Analiz yükleniyor...</li>";
 
     try {
-        const response = await fetch(`${API_URL}/register`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password }) 
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            alert("Kayıt başarılı! Şimdi giriş yapabilirsiniz.");
-            showLogin(); // Kayıttan sonra giriş formunu göster
-        } else {
-            alert("Kayıt Hatası: " + data.error);
-        }
-    } catch (error) {
-        console.error("Kayıt Hatası:", error);
-        alert("Kayıt Hatası: Sunucuya ulaşılamıyor veya ağ bağlantısı hatası.");
-    }
-}
-
-function logoutUser() {
-    localStorage.removeItem('username');
-    currentUsername = '';
-    window.location.reload(); 
-}
-
-// ==========================================================
-// BÜTÇE YÖNETİMİ VE HESAPLAMALAR
-// ==========================================================
-
-async function loadBudget(username) {
-    try {
-        const response = await fetch(`${API_URL}/budget?user=${username}`);
-        if (!response.ok) throw new Error("Veri yüklenemedi");
+        // Backend'deki analiz yolunu çağır
+        const res = await fetch(`${API_URL}/analyze?username=${currentUser}&income=${budget.income}&expenses=${totalExpenses}&net=${netBudget}&dailyLimit=${dailyLimit.toFixed(2)}`);
         
-        const data = await response.json();
+        if (res.ok) {
+            const data = await res.json();
+            const fullText = data.analysis;
 
-        if (data && data.budget) {
-            incomeInput.value = data.budget.income || '';
-            rentInput.value = data.budget.rent || '';
-            foodInput.value = data.budget.food || '';
-            transportInput.value = data.budget.transport || '';
+            // Analiz ve tavsiyeleri ayır
+            const parts = fullText.split("Tavsiyeler:");
+            const analysisPart = parts[0];
+            const suggestionsPart = parts.length > 1 ? parts[1] : '';
+
+            document.getElementById("analysis-summary").textContent = analysisPart.trim();
             
-            // HTML'de entertainment ve usdBirikim ID'leri var.
-            entertainmentInput.value = data.budget.entertainment || '';
-            usdBirikimInput.value = data.budget.usdBirikim || '';
-            
-            otherInput.value = data.budget.other || '';
+            if (suggestionsPart) {
+                 const suggestionsList = suggestionsPart.split(/\d+\.\s*/).filter(item => item.trim() !== '');
+                 document.getElementById("suggestions-list").innerHTML = suggestionsList.map(item => `<li>${item.trim()}</li>`).join('');
+            } else {
+                 document.getElementById("suggestions-summary").textContent += " [Tavsiye metni formatı hatalı.]";
+                 document.getElementById("suggestions-list").innerHTML = "<li>Analiz başarılı, ancak tavsiye formatı ayrıştırılamadı.</li>";
+            }
+        } else {
+            const errorData = await res.json();
+             document.getElementById("analysis-summary").textContent = "Hata: Analiz edilemedi. API anahtarınızı kontrol edin.";
+             document.getElementById("suggestions-list").innerHTML = `<li>Hata: ${errorData.error}</li>`;
         }
-        displayBudget();
-
-    } catch (error) {
-        console.error("Bütçe Yükleme Hatası:", error);
+    } catch (e) {
+        console.error("Analiz çağrısı hatası:", e);
+        document.getElementById("analysis-summary").textContent = "Bağlantı Hatası: Sunucuya ulaşılamıyor veya API Key hatalı.";
     }
 }
 
-function calculateBudget() {
-    const income = parseFloat(incomeInput.value) || 0;
-    const rent = parseFloat(rentInput.value) || 0;
-    const food = parseFloat(foodInput.value) || 0;
-    const transport = parseFloat(transportInput.value) || 0;
-    const entertainment = parseFloat(entertainmentInput.value) || 0; // Yeni
-    const usdBirikim = parseFloat(usdBirikimInput.value) || 0;       // Yeni
-    const other = parseFloat(otherInput.value) || 0;
 
-    const totalExpenses = rent + food + transport + entertainment + usdBirikim + other; // Tümü toplanır
-    const netBudget = income - totalExpenses;
-    
-    const daysInMonth = 30; 
-    const dailyLimit = netBudget > 0 ? (netBudget / daysInMonth).toFixed(2) : 0;
+// ==========================================================
+// 3. EKRANA GÖSTERİM VE HESAPLAMA FONKSİYONU
+// ==========================================================
+function displayBudget(budget) {
+  // Eğer budget null gelirse boş bir obje ata ki çökmesin
+  if (!budget) budget = {};
 
-    return { income, totalExpenses, netBudget, dailyLimit };
+  // Değerleri alırken "|| 0" kullanarak, veri yoksa 0 saymasını sağla
+  const income = budget.income || 0;
+  const rent = budget.rent || 0;
+  const food = budget.food || 0;
+  const transport = budget.transport || 0;
+  const entertainment = budget.entertainment || 0;
+  const other = budget.other || 0;
+  const rentDay = budget.rentDay || 1;
+
+  // 1. Giderleri Hesapla
+  const totalExpenses = rent + food + transport + entertainment + other;
+  const netBudget = income - totalExpenses; 
+
+  // 2. Günlük Bütçe Hesaplama
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const daysInMonth = new Date(currentYear, today.getMonth() + 1, 0).getDate();
+  const remainingDays = daysInMonth - today.getDate() + 1;
+
+  // 3. Sonuçları Ekranda Göster
+  document.getElementById("total-income").textContent = income.toLocaleString() + " TL";
+  document.getElementById("total-expense").textContent = totalExpenses.toLocaleString() + " TL";
+  document.getElementById("net-budget").textContent = netBudget.toLocaleString() + " TL";
+
+  // Renklendirme
+  const netElement = document.getElementById("net-budget");
+  if(netBudget < 0) netElement.style.color = "red";
+  else netElement.style.color = "green";
+
+  // Günlük limit
+  const dailyLimit = remainingDays > 0 ? (netBudget / remainingDays) : 0;
+  document.getElementById("daily-limit").textContent = dailyLimit.toFixed(2).toLocaleString() + " TL";
+  
+  // Analizi Başlat (Veri gösterildikten sonra)
+  fetchAnalysis(budget);
 }
 
-function displayBudget() {
-    const { income, totalExpenses, netBudget, dailyLimit } = calculateBudget();
+
+// ==========================================================
+// 4. VERİ TABANI ÇEKME VE KAYDETME
+// ==========================================================
+
+async function fetchBudget() {
+  if (!currentUser || currentUser === "misafir") return; 
+
+  try {
+    const res = await fetch(`${API_URL}/budget?user=${currentUser}`);
     
-    totalIncomeSpan.textContent = `${income.toFixed(2)} TL`;
-    totalExpenseSpan.textContent = `${totalExpenses.toFixed(2)} TL`;
-    netBudgetSpan.textContent = `${netBudget.toFixed(2)} TL`;
-
-    dailyLimitSpan.textContent = dailyLimit + ' TL';
-
-    if (netBudget > 0) {
-        fetchAnalysis({
-            income: income.toFixed(2),
-            expenses: totalExpenses.toFixed(2),
-            net: netBudget.toFixed(2),
-            dailyLimit: dailyLimit
-        });
-    } else {
-        analysisDiv.innerHTML = '<p class="error-text">Analiz için net bütçenin pozitif olması gerekir.</p>';
+    if (res.ok) {
+      const data = await res.json();
+      displayBudget(data || {}); 
     }
+  } catch (e) {
+    console.error("Bütçe çekme hatası:", e);
+  }
 }
 
 async function saveBudget() {
-    const budgetData = calculateBudget();
-    
-    const budgetPayload = {
-        username: currentUsername,
-        budget: {
-            income: budgetData.income,
-            rent: parseFloat(rentInput.value) || 0,
-            food: parseFloat(foodInput.value) || 0,
-            transport: parseFloat(transportInput.value) || 0,
-            entertainment: parseFloat(entertainmentInput.value) || 0,
-            usdBirikim: parseFloat(usdBirikimInput.value) || 0,
-            other: parseFloat(otherInput.value) || 0,
-        }
+    if (!currentUser || currentUser === "misafir") {
+        return alert("Lütfen verileri kaydetmek için önce giriş yapın!");
+    }
+
+    // Doğru: Her zaman .value kullanıyoruz ve parseFloat ile sayıya çeviriyoruz
+    const incomeVal = document.getElementById("income").value;
+    const rentVal = document.getElementById("rent").value;
+    const rentDayVal = document.getElementById("rentDay").value;
+    const foodVal = document.getElementById("food").value;
+    const transportVal = document.getElementById("transport").value;
+    const entertainmentVal = document.getElementById("entertainment").value;
+    const usdBirikimVal = document.getElementById("usdBirikim").value;
+    const otherVal = document.getElementById("other").value;
+
+    const budgetData = {
+        username: currentUser, 
+        income: parseFloat(incomeVal) || 0,
+        rent: parseFloat(rentVal) || 0,
+        rentDay: parseFloat(rentDayVal) || 1,
+        food: parseFloat(foodVal) || 0,
+        transport: parseFloat(transportVal) || 0,
+        entertainment: parseFloat(entertainmentVal) || 0,
+        usdBirikim: parseFloat(usdBirikimVal) || 0,
+        other: parseFloat(otherVal) || 0
     };
 
+    console.log("Gönderilen Veri:", budgetData);
+
     try {
-        const response = await fetch(`${API_URL}/budget`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(budgetPayload)
+        const res = await fetch(`${API_URL}/budget`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(budgetData),
         });
 
-        if (response.ok) {
-            displayBudget();
-            alert("Bütçe verileri kaydedildi ve analiz başlatıldı.");
+        const result = await res.json();
+
+        if (res.ok) {
+            displayBudget(result); 
+            alert("✅ Veriler Başarıyla Kaydedildi!");
         } else {
-            const data = await response.json();
-            alert("Kaydetme Hatası: " + data.error);
-        }
-    } catch (error) {
-        console.error("Kaydetme Hatası:", error);
-        alert("Kaydetme Hatası: Sunucuya ulaşılamıyor.");
-    }
-}
-
-// ==========================================================
-// YAPAY ZEKA ANALİZİ (HUGGING FACE)
-// ==========================================================
-
-// NOT: Bu fonksiyon, server.js'deki /analyze yolunu çağırır
-async function fetchAnalysis({ income, expenses, net, dailyLimit }) {
-    analysisDiv.innerHTML = '<p>Analiz bekleniyor...</p>';
-
-    try {
-        const query = new URLSearchParams({
-            username: currentUsername,
-            income,
-            expenses,
-            net,
-            dailyLimit
-        }).toString();
-
-        const response = await fetch(`${API_URL}/analyze?${query}`);
-        
-        const data = await response.json();
-
-        if (response.ok) {
-            let analysis = data.analysis;
-            
-            // Hugging Face'den gelen girdiyi temizle (Model girdiyi tekrar edebilir)
-            const promptStart = `Kullanıcı: ${currentUsername}. Aylık Gelir: ${income} TL.`;
-            let cleanAnalysis = analysis.substring(analysis.indexOf(promptStart) + promptStart.length).trim();
-            
-            // Hâlâ gürültü varsa baştan temizle
-            if (cleanAnalysis.startsWith('Bu bütçe verilerine dayanarak,')) {
-                cleanAnalysis = cleanAnalysis.substring(cleanAnalysis.indexOf('verilerine dayanarak,')).trim();
-            }
-
-            // HTML'inizde <p class="analysis-text" id="analysis-summary"> var
-            analysisDiv.innerHTML = `<pre>${cleanAnalysis}</pre>`; 
-        } else {
-            analysisDiv.innerHTML = `<p class="error-text">Hata: Analiz edilemedi. ${data.error || 'Bilinmeyen Hata'}</p>`;
-        }
-    } catch (error) {
-        console.error("Analiz Fetch Hatası:", error);
-        analysisDiv.innerHTML = `<p class="error-text">Bağlantı Hatası: Sunucuya ulaşılamıyor veya API yolları hatalı.</p>`;
-    }
-}
-
-// ==========================================================
-// KUR BİLGİSİ
-// ==========================================================
-
-// NOT: HTML'de currencySelect ve currencyDisplay ID'leri yok, 
-// o yüzden bu fonksiyon şimdilik sadece varsayılanı kullanır.
-async function fetchExchangeRates() {
-    // HTML'inizdeki ID'lere göre uyarlanmıştır
-    const usdRateSpan = document.getElementById('usd-rate');
-    const goldRateSpan = document.getElementById('gold-rate');
-    
-    // USD oranı çekme (varsayılan)
-    try {
-        const response = await fetch(`https://open.er-api.com/v6/latest/USD`);
-        const data = await response.json();
-        
-        if (data.rates && data.rates.TRY) {
-             // 1 USD kaç TL
-            const usdToTry = data.rates.TRY.toFixed(2); 
-            usdRateSpan.textContent = `1 USD = ${usdToTry} TL`;
-        } else {
-            usdRateSpan.textContent = 'Veri çekilemedi';
+            throw new Error(result.error || result.message || "Bilinmeyen sunucu hatası");
         }
     } catch (e) {
-        usdRateSpan.textContent = 'Hata';
+        console.error("Kaydetme hatası:", e);
+        alert("Kaydetme hatası: " + e.message);
     }
-
-    // Altın çekme (HTML'de ID var, ama API yok, sadece placeholder)
-    goldRateSpan.textContent = '4.500 TL (Placeholder)';
 }
 
 // ==========================================================
-// BAŞLANGIÇ
+// 5. GİRİŞ/KAYIT FONKSİYONLARI
 // ==========================================================
 
-// Giriş butonuna tıklanınca saveBudget fonksiyonunu çağır
-if (saveButton) {
-    saveButton.addEventListener('click', saveBudget);
+// Giriş Yap
+async function loginUser() {
+    const usernameInput = document.getElementById("login-username").value.trim();
+    
+    if (!usernameInput) return alert("Lütfen kullanıcı adı girin!");
+
+    const loginBtn = document.querySelector("#login-form button");
+    loginBtn.textContent = "Kontrol ediliyor...";
+    loginBtn.disabled = true;
+
+    try {
+        const res = await fetch(`${API_URL}/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: usernameInput })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            currentUser = usernameInput;
+            document.getElementById("auth-container").style.display = "none";
+            document.getElementById("app-container").style.display = "block";
+            fetchBudget(); 
+            alert("Giriş Başarılı! Hoş geldiniz.");
+        } else {
+            alert(data.error || "Giriş başarısız.");
+        }
+    } catch (e) {
+        console.error("Giriş Hatası:", e);
+        alert("Sunucuya bağlanılamadı. İnternetinizi kontrol edin.");
+    } finally {
+        loginBtn.textContent = "Giriş Yap";
+        loginBtn.disabled = false;
+    }
 }
 
-// Sayfa yüklendiğinde arayüzü güncelle
-document.addEventListener('DOMContentLoaded', updateUI);
-document.addEventListener('DOMContentLoaded', fetchExchangeRates);
+// Kayıt Ol
+async function registerUser() {
+    const usernameInput = document.getElementById("register-username").value.trim();
+
+    if (!usernameInput) return alert("Lütfen kullanıcı adı girin!");
+
+    try {
+        const res = await fetch(`${API_URL}/register`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: usernameInput })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            alert("Kayıt Başarılı! ✅ Şimdi giriş yapabilirsiniz.");
+            showLogin(); 
+        } else {
+            alert(data.error || "Kayıt yapılamadı.");
+        }
+    } catch (e) {
+        console.error("Kayıt hatası:", e);
+        alert("Sunucu hatası.");
+    }
+}
+
+// Çıkış Yap
+function logoutUser() {
+  document.getElementById("app-container").style.display = "none";
+  document.getElementById("auth-container").style.display = "block";
+  currentUser = "misafir"; // Kullanıcıyı sıfırla
+  // Formları temizle
+  document.getElementById("login-username").value = "";
+  document.getElementById("login-password").value = "";
+}
+
+// Kayıt Formunu Göster
+function showRegister() {
+  document.getElementById("login-form").style.display = "none";
+  document.getElementById("register-form").style.display = "block";
+}
+
+// Giriş Formunu Göster
+function showLogin() {
+  document.getElementById("register-form").style.display = "none";
+  document.getElementById("login-form").style.display = "block";
+}
+
+
+// ==========================================================
+// 6. BAŞLANGIÇ ÇAĞRILARI
+// ==========================================================
+
+document.addEventListener("DOMContentLoaded", () => {
+  fetchExchangeRates(); 
+  fetchBudget(); 
+
+  // Kaydet butonuna event listener ekle
+  document.getElementById("saveButton").addEventListener("click", saveBudget);
+});
