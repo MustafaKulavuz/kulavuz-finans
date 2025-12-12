@@ -6,10 +6,10 @@ require('dotenv').config();
 // Hugging Face Paketi Kontrolü
 const { HfInference } = require("@huggingface/inference");
 let ai;
-const MODEL_NAME = "gpt2"; // Ücretsiz ve hızlı bir metin oluşturma modeli
+const MODEL_NAME = "gpt2"; 
 
 try {
-    // KRİTİK AYAR: Adres hatasını çözmek için yeni router adresini belirtiyoruz.
+    // KRİTİK AYAR: API adresi hatasını çözmek için router adresini kullanır.
     ai = new HfInference({
         endpoint: "https://router.huggingface.co/models" 
     }); 
@@ -38,7 +38,6 @@ mongoose.connect(process.env.MONGO_URI)
 app.post('/api/login', async (req, res) => {
     try {
         const { username } = req.body;
-        // Parola kontrolü bu kodda yapılmadığı için sadece kullanıcı adına bakılır.
         const user = await Budget.findOne({ username }); 
         if (user) res.json({ success: true });
         else res.status(404).json({ error: "Kullanıcı bulunamadı. Lütfen kayıt olun." });
@@ -71,14 +70,16 @@ app.get('/api/budget', async (req, res) => {
     }
 });
 
-// 4. VERİ KAYDET (POST /api/budget)
+// 4. VERİ KAYDET (POST /api/budget) - [KRİTİK DÜZELTME]
 app.post('/api/budget', async (req, res) => {
     try {
         const { username } = req.body;
-        if (!username) return res.status(400).json({ error: "Kullanıcı adı EKSİK!" });
+        if (!username) return res.status(400).json({ error: "Kullanıcı adı EKSİK! Kayıt yapılmadı." });
+        
+        // Veri tabanında kullanıcı adına göre kaydı bul veya yeni oluştur (upsert: true)
         const updated = await Budget.findOneAndUpdate(
-            { username: username },
-            req.body,
+            { username: username }, // Kullanıcı adını filtrele
+            req.body,               // Tüm gelen veriyi (username ve budget objesi) kaydet
             { new: true, upsert: true, runValidators: true }
         );
         res.json(updated);
@@ -87,11 +88,11 @@ app.post('/api/budget', async (req, res) => {
     }
 });
 
-// 5. YAPAY ZEKA ANALİZİ (GET) - HUGGING FACE VERSİYONU
+// 5. YAPAY ZEKA ANALİZİ (GET)
 app.get('/api/analyze', async (req, res) => {
     try {
         if (!ai) {
-            return res.status(500).json({ error: "AI servisi kapalı. Hugging Face paketi başlatılamadı." });
+            return res.status(500).json({ error: "AI servisi kapalı." });
         }
         
         const { username, income, expenses, net, dailyLimit } = req.query;
