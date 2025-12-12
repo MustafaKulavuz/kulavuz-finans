@@ -3,29 +3,19 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
-// DeepSeek için OpenAI SDK'sını kullanıyoruz
-let OpenAI; // Değişkeni dışarıda tanımlıyoruz
+// Hugging Face Paketi Kontrolü
+let HfInference;
 let ai;
+const MODEL_NAME = "gpt2"; // Ücretsiz ve hızlı bir metin oluşturma modeli
 
 try {
-    // 1. Önce paketi bulmayı dene (Paket yoksa burada hata verir)
-    OpenAI = require("openai").OpenAI; 
-    
-    // 2. Ardından servisi başlatmayı dene (Anahtar yoksa burada hata verir)
-    ai = new OpenAI({
-        apiKey: process.env.DEEPSEEK_API_KEY,
-        baseURL: "https://api.deepseek.com/v1"
-    });
+    HfInference = require("@huggingface/inference").HfInference;
+    // Hugging Face API bağlantısı (API anahtarı olmadan çalışır)
+    ai = new HfInference(); 
 } catch (e) {
-    // Hata paketle ilgili mi (MODULE_NOT_FOUND) yoksa anahtarla ilgili mi?
-    if (e.code === 'MODULE_NOT_FOUND') {
-        console.error("KRİTİK HATA: OpenAI paketi bulunamıyor! Lütfen 'npm install openai' komutunu çalıştırın.");
-    } else {
-        console.error("KRİTİK HATA: OpenAI servisi başlatılamadı! Anahtarı kontrol edin. Detay:", e.message);
-    }
-    ai = null;
+    console.error("KRİTİK HATA: Hugging Face paketi başlatılamadı!", e.message);
+    ai = null; 
 }
-
 
 // Model dosyasını çağırma
 const Budget = require('./models/Budget');
@@ -47,7 +37,6 @@ mongoose.connect(process.env.MONGO_URI)
 app.post('/api/login', async (req, res) => {
     try {
         const { username } = req.body;
-        // Kullanıcıyı Budget modelinde arıyoruz
         const user = await Budget.findOne({ username }); 
         if (user) res.json({ success: true });
         else res.status(404).json({ error: "Kullanıcı bulunamadı. Lütfen kayıt olun." });
@@ -61,8 +50,6 @@ app.post('/api/register', async (req, res) => {
     try {
         const { username } = req.body;
         if(await Budget.findOne({ username })) return res.status(400).json({ error: "Bu kullanıcı adı zaten alınmış." });
-        
-        // Yeni Budget belgesi oluşturup kaydediyoruz
         await new Budget({ username }).save();
         res.json({ success: true });
     } catch (e) {
@@ -75,8 +62,6 @@ app.get('/api/budget', async (req, res) => {
     try {
         const username = req.query.user;
         if (!username) return res.json({});
-        
-        // Kullanıcının bütçe verilerini çek
         const data = await Budget.findOne({ username });
         res.json(data || {});
     } catch (e) {
@@ -89,75 +74,55 @@ app.post('/api/budget', async (req, res) => {
     try {
         const { username } = req.body;
         if (!username) return res.status(400).json({ error: "Kullanıcı adı EKSİK!" });
-
-        // Veriyi bul ve güncelle, yoksa yeni oluştur
         const updated = await Budget.findOneAndUpdate(
             { username: username },
             req.body,
             { new: true, upsert: true, runValidators: true }
         );
-
         res.json(updated);
     } catch (e) {
-        console.error("Kaydetme Hatası:", e);
         res.status(500).json({ error: "Kaydetme başarısız: " + e.message });
     }
 });
 
-
-// 5. YAPAY ZEKA ANALİZİ (GET) - DeepSeek Entegrasyonu
+// 5. YAPAY ZEKA ANALİZİ (GET) - HUGGING FACE VERSİYONU
 app.get('/api/analyze', async (req, res) => {
     try {
         if (!ai) {
-            return res.status(500).json({ error: "AI servisi kapalı. Lütfen sunucu loglarını ve 'npm install openai' kontrol edin." });
+            return res.status(500).json({ error: "AI servisi kapalı. Hugging Face paketi başlatılamadı." });
         }
         
         const { username, income, expenses, net, dailyLimit } = req.query;
 
-        if (!username) {
-            return res.status(400).json({ error: "Kullanıcı adı eksik." });
-        }
-        
-        // Anahtar kontrolü
-        if (!process.env.DEEPSEEK_API_KEY) {
-            return res.status(500).json({ error: "API Anahtarı (DEEPSEEK_API_KEY) ortam değişkenlerinde tanımlı değil!" });
-        }
-
         const prompt = `
-            Kullanıcı: ${username}.
-            Aylık Gelir: ${income} TL
-            Aylık Gider (Toplam): ${expenses} TL
-            Net Aylık Bütçe: ${net} TL
-            Kalan Günlük Harcama Limiti: ${dailyLimit} TL
-            
-            Bu bütçe verilerine dayanarak, kullanıcıya hitap eden 100 kelimelik bir analiz yap ve bu analiz sonucunda 3 tane kişiselleştirilmiş finansal tavsiye ver. Tavsiyeleri kısa ve madde madde listele. Cevabı sadece analiz ve tavsiyeler olarak Türkçe yaz.
+            Kullanıcı: ${username}. Aylık Gelir: ${income} TL. Aylık Gider: ${expenses} TL. Net Bütçe: ${net} TL.
+            Bu bütçe verilerine dayanarak, kullanıcıya hitap eden 100 kelimelik bir finansal analiz yap ve 3 tane kişiselleştirilmiş finansal tavsiye ver. Tavsiyeleri kısa ve madde madde listele. Cevabı sadece analiz ve tavsiyeler olarak Türkçe yaz.
         `;
 
-        // DeepSeek API çağrısı
-        const response = await ai.chat.completions.create({
-            model: 'deepseek-chat', 
-            messages: [{ role: "user", content: prompt }],
-            max_tokens: 400, // Çıktıyı sınırla
+        // Hugging Face API çağrısı
+        const response = await ai.textGeneration({
+            model: MODEL_NAME,
+            inputs: prompt,
+            parameters: {
+                max_new_tokens: 300,
+                temperature: 0.8
+            }
         });
 
-        const analysisText = response.choices[0].message.content; 
+        // Yanıt formatı Hugging Face'e göredir.
+        const analysisText = response.generated_text || response; 
 
         res.json({ analysis: analysisText });
 
     } catch (err) {
         console.error("Yapay Zeka Analiz Hatası:", err);
-        // Hata API Key'den kaynaklanıyorsa detaylı mesaj ver.
-        res.status(500).json({ error: "Analiz Hatası: DeepSeek bağlantı hatası veya anahtar geçersiz. " + err.message });
+        // Hugging Face'de hız/kota aşımı olabilir.
+        res.status(500).json({ error: "Hugging Face Analiz Hatası: " + err.message });
     }
 });
 
-
-// ==========================================================
 // PORT DİNLEME
-// ==========================================================
-
 const PORT = process.env.PORT || 5000;
-
 app.listen(PORT, () => {
     console.log(`🚀 Sunucu Port: ${PORT} üzerinde çalışıyor.`);
 });
