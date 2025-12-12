@@ -4,18 +4,25 @@ const cors = require('cors');
 require('dotenv').config();
 
 // DeepSeek için OpenAI SDK'sını kullanıyoruz
-const { OpenAI } = require("openai"); 
+let OpenAI; // Değişkeni dışarıda tanımlıyoruz
 let ai;
 
 try {
-    // DeepSeek API bağlantısı
-    // baseURL, DeepSeek'in API endpoint'i olmalıdır.
+    // 1. Önce paketi bulmayı dene (Paket yoksa burada hata verir)
+    OpenAI = require("openai").OpenAI; 
+    
+    // 2. Ardından servisi başlatmayı dene (Anahtar yoksa burada hata verir)
     ai = new OpenAI({
-        apiKey: process.env.DEEPSEEK_API_KEY, // Yeni anahtar adını kullanın
-        baseURL: "https://api.deepseek.com/v1" // DeepSeek için doğru endpoint
+        apiKey: process.env.DEEPSEEK_API_KEY,
+        baseURL: "https://api.deepseek.com/v1"
     });
 } catch (e) {
-    console.error("KRİTİK HATA: OpenAI paketi başlatılamadı! Lütfen 'npm install openai' komutunu çalıştırın.");
+    // Hata paketle ilgili mi (MODULE_NOT_FOUND) yoksa anahtarla ilgili mi?
+    if (e.code === 'MODULE_NOT_FOUND') {
+        console.error("KRİTİK HATA: OpenAI paketi bulunamıyor! Lütfen 'npm install openai' komutunu çalıştırın.");
+    } else {
+        console.error("KRİTİK HATA: OpenAI servisi başlatılamadı! Anahtarı kontrol edin. Detay:", e.message);
+    }
     ai = null;
 }
 
