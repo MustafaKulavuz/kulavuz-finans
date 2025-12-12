@@ -1,201 +1,253 @@
-/* Genel Stil Sıfırlamaları */
-body {
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f4f7f6;
-  margin: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
+/* Genel Sıfırlamalar ve Yazı Tipleri */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
 }
 
-/* --- GİRİŞ/KAYIT STİLLERİ --- */
+/* Sayfa Temel Düzeni ve Dikey Ortalama (KRİTİK) */
+body {
+    display: flex;
+    justify-content: center; /* Yatayda ortala */
+    align-items: flex-start; /* İçeriği dikeyde yukarıdan başlat (Uygulama geniş olduğu için) */
+    min-height: 100vh; /* Ekran yüksekliğinin tamamını kapla */
+    background-color: #f4f7f9;
+    padding: 20px;
+}
+
+/* ========================================= */
+/* GİRİŞ / KAYIT BÖLÜMLERİ */
+/* ========================================= */
+
 .auth-container {
-  width: 100%;
-  max-width: 400px;
-  background-color: #ffffff;
-  box-shadow: 0 0 25px rgba(0, 0, 0, 0.15);
-  border-radius: 15px;
-  padding: 30px;
-  text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    max-width: 400px;
+    width: 100%;
+    margin-top: 50px; /* Üstten boşluk bırak */
+}
+
+.auth-form {
+    width: 100%;
+    padding: 20px 0;
+}
+
+.auth-form h3 {
+    margin-bottom: 20px;
+    color: #333;
+    font-size: 1.5em;
 }
 
 .auth-form input {
-  width: 100%;
-  padding: 12px;
-  margin-bottom: 15px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  box-sizing: border-box;
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 1em;
 }
 
 .auth-form button {
-  width: 100%;
-  margin-top: 5px;
+    width: 100%;
+    padding: 12px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.1em;
+    transition: background-color 0.3s;
 }
 
-.auth-container a {
-  color: #4caf50; /* Ana tema rengi */
-  text-decoration: none;
-  font-weight: bold;
+.auth-form button:hover {
+    background-color: #0056b3;
 }
 
-.auth-container p {
-  margin-top: 20px;
+.auth-form p {
+    margin-top: 15px;
+    font-size: 0.9em;
+    color: #666;
 }
 
-.logout-button {
-  width: auto !important;
-  padding: 5px 10px !important;
-  margin-top: 0 !important;
-  float: right;
-  font-size: 0.8em !important;
-  background-color: #f44336 !important;
+.auth-form a {
+    color: #007bff;
+    text-decoration: none;
 }
 
-.logout-button:hover {
-  background-color: #d32f2f !important;
-}
-
-/* --- UYGULAMA STİLLERİ --- */
+/* ========================================= */
+/* UYGULAMA BÖLÜMÜ */
+/* ========================================= */
 
 .app-container {
-  width: 100%;
-  max-width: 400px;
-  background-color: #ffffff;
-  box-shadow: 0 0 25px rgba(0, 0, 0, 0.15);
-  border-radius: 15px;
-  overflow: hidden;
+    /* script.js'teki 'flex' ile uyumlu olması için */
+    display: flex; 
+    flex-direction: column;
+    width: 95%;
+    max-width: 1200px;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* Başlık Alanı */
 .header {
-  background-color: #4caf50;
-  color: white;
-  padding: 20px;
-  text-align: center;
+    background-color: #007bff;
+    color: white;
+    padding: 20px 30px;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .header h1 {
-  margin: 0 0 5px 0;
+    font-size: 1.8em;
+}
+
+.logout-button {
+    background-color: #ff4d4d;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.logout-button:hover {
+    background-color: #cc0000;
 }
 
 .content {
-  padding: 20px;
+    display: grid;
+    grid-template-columns: 2fr 1fr; /* Sol (Gider) 2, Sağ (Durum/Piyasa) 1 oranında */
+    gap: 20px;
+    padding: 30px;
 }
 
-/* Kart Stilleri */
-.balance-card,
+/* Yan yana kart düzeni (Mobil için tek sütuna iner) */
+@media (max-width: 900px) {
+    .content {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ========================================= */
+/* KART STİLLERİ */
+/* ========================================= */
+
 .analysis-card,
-.reminder-card {
-  background-color: #e8f5e9;
-  border-radius: 10px;
-  padding: 15px;
-  margin-bottom: 20px;
-  border-left: 6px solid #4caf50;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+.balance-card,
+.currency-card {
+    background-color: #f9f9f9;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
 }
 
-.budget-setup-card input[type="number"],
-.budget-setup-card input[type="text"] {
-  width: calc(100% - 10px);
-  padding: 10px;
-  margin-top: 5px;
-  margin-bottom: 15px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  box-sizing: border-box;
-  font-size: 1em;
+.analysis-card h2,
+.balance-card h2,
+.currency-card h2 {
+    color: #007bff;
+    margin-bottom: 15px;
+    font-size: 1.4em;
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 5px;
 }
 
-#available-budget,
-#daily-limit {
-  font-size: 1.6em;
-  font-weight: bold;
-  color: #388e3c;
-  margin: 10px 0;
-  display: block;
+/* Bütçe Kurulum Kartı (Dikey Sıralama) */
+.budget-setup-card {
+    display: flex;
+    flex-direction: column; /* Öğeleri dikey sırala */
 }
 
-button {
-  background-color: #4caf50;
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 1em;
-  font-weight: bold;
-  transition: background-color 0.3s, transform 0.1s;
-  width: 100%;
-  box-sizing: border-box;
-  margin-top: 10px;
+.budget-setup-card label {
+    font-weight: bold;
+    margin-top: 10px;
+    margin-bottom: 5px;
+    color: #333;
 }
 
-button:hover {
-  background-color: #388e3c;
+.budget-setup-card input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
 }
 
-#suggestions-list {
-  list-style: none;
-  padding-left: 0;
-  margin-top: 15px;
+.budget-setup-card button#saveButton {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1em;
+    margin-top: 15px;
+    transition: background-color 0.3s;
 }
 
-#suggestions-list li {
-  background-color: #c8e6c9;
-  padding: 10px;
-  border-radius: 5px;
-  margin-bottom: 8px;
-  font-size: 0.95em;
-  border-left: 4px solid #388e3c;
+.budget-setup-card button#saveButton:hover {
+    background-color: #1e7e34;
 }
 
-.reminder-item {
-  background-color: #bbdefb;
-  padding: 10px;
-  border-radius: 5px;
-  margin-bottom: 8px;
-  font-size: 0.95em;
-  color: #1565c0;
+/* Analiz Çıktısı Alanı */
+.analysis-text pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: inherit;
+    font-size: 1em;
+    padding: 10px;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    margin-top: 10px;
 }
 
-/* --- MODAL STİLLERİ --- */
-
-.modal {
-  display: none;
-  position: fixed;
-  z-index: 100;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-  background-color: rgba(0, 0, 0, 0.5);
-  padding-top: 60px;
+/* Genel Durum Kartı */
+.balance-card p {
+    margin-bottom: 8px;
+    font-size: 1.1em;
+    color: #444;
 }
 
-.modal-content {
-  background-color: #ffffff;
-  margin: 10% auto;
-  padding: 25px;
-  border: none;
-  width: 90%;
-  max-width: 350px;
-  border-radius: 12px;
-  text-align: center;
-  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
-  animation-name: animatetop;
-  animation-duration: 0.4s;
+.balance-card hr {
+    margin: 15px 0;
+    border: 0;
+    border-top: 1px solid #ccc;
 }
 
-@keyframes animatetop {
-  from {
-    top: -300px;
-    opacity: 0;
-  }
-  to {
-    top: 10%;
-    opacity: 1;
-  }
+.balance-card #daily-limit {
+    font-size: 1.4em;
+    color: #007bff;
+}
+
+/* Hata Mesajları */
+.error-text {
+    color: #d9534f;
+    font-weight: bold;
+    padding: 10px;
+    border: 1px solid #f2dede;
+    background-color: #fcf8f8;
+    border-radius: 4px;
+}
+
+/* Footer */
+.footer {
+    text-align: center;
+    padding: 15px;
+    background-color: #e9ecef;
+    color: #6c757d;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+    font-size: 0.9em;
+    margin-top: 20px;
 }
