@@ -4,14 +4,16 @@ const cors = require('cors');
 require('dotenv').config();
 
 // Hugging Face Paketi Kontrolü
-let HfInference;
+const { HfInference } = require("@huggingface/inference");
 let ai;
 const MODEL_NAME = "gpt2"; // Ücretsiz ve hızlı bir metin oluşturma modeli
 
 try {
-    HfInference = require("@huggingface/inference").HfInference;
-    // Hugging Face API bağlantısı (API anahtarı olmadan çalışır)
-    ai = new HfInference(); 
+    // Yeni router adresini belirterek bağlantı kuruyoruz (Hata çözümü için KRİTİK)
+    ai = new HfInference({
+        endpoint: "https://router.huggingface.co/models" 
+        // HF_ACCESS_TOKEN: process.env.HF_API_KEY // İhtiyaç duyarsanız HF API anahtarınızı buradan ekleyebilirsiniz
+    }); 
 } catch (e) {
     console.error("KRİTİK HATA: Hugging Face paketi başlatılamadı!", e.message);
     ai = null; 
