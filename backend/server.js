@@ -4,20 +4,21 @@ const cors = require('cors');
 require('dotenv').config();
 
 // Hugging Face Paketi Kontrolü
-let HfInference;
+const { HfInference } = require("@huggingface/inference");
 let ai;
-const MODEL_NAME = "gpt2"; // Ücretsiz ve hızlı bir metin oluşturma modeli
+const MODEL_NAME = "gpt2"; 
 
 try {
-    HfInference = require("@huggingface/inference").HfInference;
-    // Hugging Face API bağlantısı (API anahtarı olmadan çalışır)
-    ai = new HfInference(); 
+    // API adresi hatasını çözmek için KRİTİK ayar.
+    ai = new HfInference({
+        endpoint: "https://router.huggingface.co/models" 
+    }); 
 } catch (e) {
     console.error("KRİTİK HATA: Hugging Face paketi başlatılamadı!", e.message);
     ai = null; 
 }
 
-// Model dosyasını çağırma
+// Model dosyasını çağırma (models/Budget.js olduğunu varsayar)
 const Budget = require('./models/Budget');
 
 const app = express();
@@ -37,6 +38,7 @@ mongoose.connect(process.env.MONGO_URI)
 app.post('/api/login', async (req, res) => {
     try {
         const { username } = req.body;
+        // Parola kontrolü bu kodda yapılmadığı için sadece kullanıcı adına bakılır.
         const user = await Budget.findOne({ username }); 
         if (user) res.json({ success: true });
         else res.status(404).json({ error: "Kullanıcı bulunamadı. Lütfen kayıt olun." });
@@ -99,7 +101,6 @@ app.get('/api/analyze', async (req, res) => {
             Bu bütçe verilerine dayanarak, kullanıcıya hitap eden 100 kelimelik bir finansal analiz yap ve 3 tane kişiselleştirilmiş finansal tavsiye ver. Tavsiyeleri kısa ve madde madde listele. Cevabı sadece analiz ve tavsiyeler olarak Türkçe yaz.
         `;
 
-        // Hugging Face API çağrısı
         const response = await ai.textGeneration({
             model: MODEL_NAME,
             inputs: prompt,
@@ -109,14 +110,12 @@ app.get('/api/analyze', async (req, res) => {
             }
         });
 
-        // Yanıt formatı Hugging Face'e göredir.
         const analysisText = response.generated_text || response; 
 
         res.json({ analysis: analysisText });
 
     } catch (err) {
         console.error("Yapay Zeka Analiz Hatası:", err);
-        // Hugging Face'de hız/kota aşımı olabilir.
         res.status(500).json({ error: "Hugging Face Analiz Hatası: " + err.message });
     }
 });

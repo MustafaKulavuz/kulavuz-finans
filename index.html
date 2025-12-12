@@ -8,6 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
   <body>
+    
     <div id="auth-container" class="auth-container">
       <h1>Kulavuz Finans'a Hoş Geldiniz</h1>
 
@@ -52,11 +53,11 @@
         </p>
       </div>
     </div>
+
     <div id="app-container" class="app-container" style="display: none">
       <header class="header">
         <h1>Kulavuz Finans</h1>
         <p>
-          Yapay Zekâ Destekli Kişisel Asistanınız
           <button class="logout-button" onclick="logoutUser()">
             Çıkış Yap
           </button>
@@ -69,93 +70,48 @@
           <p>USD/TL: <span id="usd-rate">Yükleniyor...</span></p>
           <p>Gram Altın: <span id="gold-rate">Yükleniyor...</span></p>
         </section>
-
-        <section class="analysis-card chart-card">
-          <h2>📊 Bütçe Dağılımı (Gelir vs Gider)</h2>
-          <canvas id="budgetChart"></canvas>
-        </section>
-
-       <section class="analysis-card budget-setup-card">
+        
+        <section class="analysis-card budget-setup-card">
           <h2>✍️ Aylık Veri Girişi & Kategoriler</h2>
+          
           <label for="income">Aylık Gelir (TL):</label>
-          <input
-            type="number"
-            id="income" 
-            placeholder="Örn: 25000"
-            required
-          /><br />
+          <input type="number" id="income" placeholder="Örn: 25000" required /><br />
 
           <label for="rent">Kira Gideri (TL):</label>
-          <input
-            type="number"
-            id="rent"
-            placeholder="Örn: 10000"
-          /><br />
-
-          <label for="rentDay">Kira Ödeme Günü (Ayın Kaçı):</label>
-          <input
-            type="number"
-            id="rentDay"
-            min="1"
-            max="31"
-            placeholder="Örn: 25"
-          /><br />
+          <input type="number" id="rent" placeholder="Örn: 10000" /><br />
 
           <label for="food">Mutfak/Gıda Gideri (TL):</label>
-          <input
-            type="number"
-            id="food"
-            placeholder="Örn: 3000"
-          /><br />
+          <input type="number" id="food" placeholder="Örn: 3000" /><br />
 
           <label for="transport">Ulaşım Gideri (TL):</label>
-          <input
-            type="number"
-            id="transport"
-            placeholder="Örn: 500"
-          /><br />
+          <input type="number" id="transport" placeholder="Örn: 500" /><br />
 
           <label for="entertainment">Eğlence/Sosyal Gider (TL):</label>
-          <input
-            type="number"
-            id="entertainment"
-            placeholder="Örn: 1500"
-          /><br />
+          <input type="number" id="entertainment" placeholder="Örn: 1500" /><br />
 
           <label for="usdBirikim">Hedef USD Birikimi (TL karşılığı):</label>
-          <input
-            type="number"
-            id="usdBirikim"
-            placeholder="Örn: 100 USD karşılığı TL"
-          /><br />
+          <input type="number" id="usdBirikim" placeholder="Örn: 1000 TL" /><br />
 
           <label for="other">Diğer Sabit Giderler (TL):</label>
-          <input
-            type="number"
-            id="other"
-            placeholder="Faturalar, Abonelikler vb."
-          /><br />
+          <input type="number" id="other" placeholder="Faturalar, Abonelikler vb." /><br />
 
-          <button id="saveButton">
+          <button id="saveButton" onclick="saveBudget()">
             Verileri Kaydet & Bütçeyi Hesapla
           </button>
         </section>
-        <hr />
+        
+        <hr> 
 
-      <section class="balance-card">
+        <section class="balance-card">
           <h2>📊 Genel Durum</h2>
           <p>Toplam Gelir: <span id="total-income" style="color:green">0 TL</span></p>
           <p>Toplam Gider: <span id="total-expense" style="color:red">0 TL</span></p>
           <p>Net Durum: <span id="net-budget" style="font-weight:bold">0 TL</span></p>
           <hr>
-          
           <p>
             Kalan Günlük Limit:
             <span id="daily-limit" style="font-weight: bold">Hesaplanıyor...</span>
           </p>
-          <p style="display:none"><span id="net-budget-display"></span></p> 
-
-          <button onclick="checkBalance()">Bakiyem Ne Durumda?</button>
         </section>
 
         <section class="analysis-card">
@@ -163,31 +119,12 @@
           <p class="analysis-text" id="analysis-summary">
             Analiz bekleniyor...
           </p>
-          <ul id="suggestions-list">
-            <li>Kişiselleştirilmiş öneriler burada yer alacak.</li>
-          </ul>
-        </section>
-
-        <section class="reminder-card">
-          <h2>⏰ Hatırlatıcılar</h2>
-          <div id="reminders-list">
-            <p class="reminder-item">Gider verilerinizi girin.</p>
-          </div>
         </section>
       </main>
 
       <footer class="footer">
         <p>&copy; 2025 Kulavuz Finans. Tüm Hakları Saklıdır.</p>
       </footer>
-    </div>
-
-    <div id="customAlertModal" class="modal">
-      <div class="modal-content">
-        <span class="close-button" onclick="closeModal()">&times;</span>
-        <h3 id="modalTitle">Bildirim</h3>
-        <p id="modalMessage">Bu bir test mesajıdır.</p>
-        <button class="modal-ok-button" onclick="closeModal()">Tamam</button>
-      </div>
     </div>
 
     <script src="script.js"></script>
